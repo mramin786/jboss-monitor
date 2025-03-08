@@ -20,24 +20,13 @@ logger = logging.getLogger(__name__)
 
 def get_system_credentials(environment):
     """Get system monitoring credentials for the environment"""
-    credentials_file = os.path.join(get_environment_path(environment), 'system_credentials.json')
+    if environment == 'production':
+        return Config.PROD_JBOSS_USERNAME, Config.PROD_JBOSS_PASSWORD
+    elif environment == 'non_production':
+        return Config.NONPROD_JBOSS_USERNAME, Config.NONPROD_JBOSS_PASSWORD
     
-    if os.path.exists(credentials_file):
-        with open(credentials_file, 'r') as f:
-            credentials = json.load(f)
-            return credentials.get('username'), credentials.get('password')
-    
+    logger.warning(f"No system credentials found for {environment} environment")
     return None, None
-
-def set_system_credentials(environment, username, password):
-    """Set system monitoring credentials for the environment"""
-    credentials_file = os.path.join(get_environment_path(environment), 'system_credentials.json')
-    
-    with open(credentials_file, 'w') as f:
-        json.dump({
-            'username': username,
-            'password': password
-        }, f, indent=2)
 
 def monitor_environment(environment):
     """Monitor all hosts in an environment"""
@@ -96,6 +85,17 @@ def start_monitoring_worker():
     # Create required directories
     os.makedirs(Config.PROD_ENV_PATH, exist_ok=True)
     os.makedirs(Config.NONPROD_ENV_PATH, exist_ok=True)
+    
+    # Check system credentials
+    prod_creds = get_system_credentials('production')
+    nonprod_creds = get_system_credentials('non_production')
+    
+    # Log warning if credentials are missing
+    if not prod_creds[0] or not prod_creds[1]:
+        logger.warning("Production JBoss CLI credentials are not set in environment variables")
+    
+    if not nonprod_creds[0] or not nonprod_creds[1]:
+        logger.warning("Non-Production JBoss CLI credentials are not set in environment variables")
     
     # Start monitoring
     monitoring_worker()

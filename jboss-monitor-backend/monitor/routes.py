@@ -1,11 +1,12 @@
 # monitor/routes.py
-from flask import Blueprint, request, jsonify
 import os
 import json
 from datetime import datetime
 import time
 import threading
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
+from flask import Blueprint, request, jsonify
 from auth.routes import token_required
 from config import Config
 from hosts.routes import load_hosts, get_environment_path
@@ -31,107 +32,15 @@ def save_status(status, environment):
     with open(status_file, 'w') as f:
         json.dump(status, f, indent=2)
 
-def get_jboss_credentials(current_user, environment):
+def get_jboss_credentials(environment):
     """Get JBoss credentials for the specified environment"""
-    env_key = 'production_jboss_' if environment == 'production' else 'non_production_jboss_'
+    # Try environment variables first
+    if environment == 'production':
+        return Config.PROD_JBOSS_USERNAME, Config.PROD_JBOSS_PASSWORD
+    elif environment == 'non_production':
+        return Config.NONPROD_JBOSS_USERNAME, Config.NONPROD_JBOSS_PASSWORD
     
-    username = current_user.get(f'{env_key}username')
-    password = current_user.get(f'{env_key}password')
-    
-    return username, password
-
-@monitor_bp.route('/<environment>/status', methods=['GET'])
-@token_required
-def get_monitor_status(current_user, environment):
-    """Get monitoring status for the specified environment"""
-    if environment not in ['production', 'non_production']:
-        return jsonify({'message': 'Invalid environment'}), 400
-    
-    hosts = load_hosts(environment)
-    status = load_status(environment)
-    
-    # Combine hosts with their status
-    result = []
-    for host in hosts:
-        host_id = host['id']
-        host_status = status.get(host_id, {
-            'instance_status': 'unknown',
-            'datasources': [],
-            'deployments': [],
-            'last_check': None
-        })
-        
-        result.append({
-            **host,
-            'status': host_status
-        })
-    
-    return jsonify(result), 200
-
-@monitor_bp.route('/<environment>/check/<host_id>', methods=['POST'])
-@token_required
-def check_host(current_user, environment, host_id):
-    """Manually check status for a specific host"""
-    if environment not in ['production', 'non_production']:
-        return jsonify({'message': 'Invalid environment'}), 400
-    
-    # Get JBoss credentials
-    username, password = get_jboss_credentials(current_user, environment)
-    if not username or not password:
-        return jsonify({'message': 'JBoss credentials not found'}), 400
-    
-    # Find the host
-    hosts = load_hosts(environment)
-    host = None
-    for h in hosts:
-        if h['id'] == host_id:
-            host = h
-            break
-    
-    if not host:
-        return jsonify({'message': 'Host not found'}), 404
-    
-    # Create a thread to run the check in background
-    def run_check():
-        monitor_host(environment, host, username, password)
-    
-    check_thread = threading.Thread(target=run_check)
-    check_thread.daemon = True
-    check_thread.start()
-    
-    return jsonify({
-        'message': 'Check initiated',
-        'host': host
-    }), 200
-
-@monitor_bp.route('/<environment>/check-all', methods=['POST'])
-@token_required
-def check_all_hosts(current_user, environment):
-    """Manually check status for all hosts"""
-    if environment not in ['production', 'non_production']:
-        return jsonify({'message': 'Invalid environment'}), 400
-    
-    # Get JBoss credentials
-    username, password = get_jboss_credentials(current_user, environment)
-    if not username or not password:
-        return jsonify({'message': 'JBoss credentials not found'}), 400
-    
-    # Get all hosts
-    hosts = load_hosts(environment)
-    
-    # Create a thread to run all checks in background
-    def run_checks():
-        for host in hosts:
-            monitor_host(environment, host, username, password)
-    
-    check_thread = threading.Thread(target=run_checks)
-    check_thread.daemon = True
-    check_thread.start()
-    
-    return jsonify({
-        'message': 'Check initiated for all hosts',
-        'host_count': len(hosts)
-    }), 200
+    return None, None
 
 def monitor_host(environment, host, username, password):
     """Monitor a single host and update its status"""
@@ -164,18 +73,18 @@ def monitor_host(environment, host, username, password):
         return
     
     # Server is up, update status
-    status[host_id]['instance_status'] = 'up' if server_result['success'] else 'down'
+    status[host_id]['instance_status'] = 'up'
     
     # Get datasources
     datasources_result = cli.get_datasources()
     if datasources_result['success']:
         try:
-            # Extract datasource names
+            # Parse datasources carefully
             ds_data = datasources_result['result']
             datasources = []
             
             # Handle data-source
-            if 'data-source' in ds_data:
+            if isinstance(ds_data, dict) and 'data-source' in ds_data:
                 for ds_name in ds_data['data-source']:
                     # Test connection
                     ds_conn_result = cli.check_datasource_connection(ds_name)
@@ -186,7 +95,7 @@ def monitor_host(environment, host, username, password):
                     })
             
             # Handle xa-data-source
-            if 'xa-data-source' in ds_data:
+            if isinstance(ds_data, dict) and 'xa-data-source' in ds_data:
                 for ds_name in ds_data['xa-data-source']:
                     # Test connection
                     ds_conn_result = cli.check_datasource_connection(ds_name)
@@ -197,28 +106,36 @@ def monitor_host(environment, host, username, password):
                     })
                     
             status[host_id]['datasources'] = datasources
-        except (KeyError, TypeError):
+        except Exception as e:
+            print(f"Datasource parsing error: {e}")
             status[host_id]['datasources'] = []
     
     # Get deployments
     deployments_result = cli.get_deployments()
     if deployments_result['success']:
         try:
-            # Extract deployment names and status
+            # Parse deployments carefully
             deployments_data = deployments_result['result']
             deployments = []
             
-            for deployment_name, deployment_data in deployments_data.items():
-                # Check if deployment is enabled
-                enabled = deployment_data.get('enabled', False)
-                
-                deployments.append({
-                    'name': deployment_name,
-                    'status': 'up' if enabled else 'down'
-                })
+            # Check if it's a dictionary before calling .items()
+            if isinstance(deployments_data, dict):
+                for deployment_name, deployment_data in deployments_data.items():
+                    # Check if deployment is enabled
+                    enabled = deployment_data.get('enabled', False)
+                    
+                    deployments.append({
+                        'name': deployment_name,
+                        'status': 'up' if enabled else 'down'
+                    })
+            elif isinstance(deployments_data, str):
+                # If it's a string, log it and skip parsing
+                print(f"Unexpected deployments data format: {deployments_data}")
+                deployments = []
                     
             status[host_id]['deployments'] = deployments
-        except (KeyError, TypeError):
+        except Exception as e:
+            print(f"Deployment parsing error: {e}")
             status[host_id]['deployments'] = []
     
     # Update last check timestamp

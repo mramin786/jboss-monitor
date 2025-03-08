@@ -5,7 +5,7 @@ import os
 import json
 import logging
 import time
-from concurrent.futures import ThreadPoolExecutor, as_completed
+import shlex
 
 class JBossCliExecutor:
     def __init__(self, host, port, username, password, timeout=30):
@@ -15,30 +15,54 @@ class JBossCliExecutor:
         self.password = password
         self.timeout = timeout
         self.logger = logging.getLogger(__name__)
+        
+        # Use the specific path for jboss-cli.sh
+        self.jboss_cli_path = '/app/jboss/bin/jboss-cli.sh'
+
+    def _mask_sensitive_data(self, command_list):
+        """
+        Create a copy of the command list with sensitive data masked
+        Helps in logging without exposing credentials
+        """
+        masked_command = command_list.copy()
+        for i, part in enumerate(masked_command):
+            if '--password=' in part:
+                masked_command[i] = '--password=****'
+        return masked_command
 
     def execute_command(self, command):
         """Execute a JBoss CLI command and return the result"""
-        # Create a temporary file for credentials
-        with tempfile.NamedTemporaryFile(delete=False, mode='w') as temp_file:
-            temp_file.write(f"{self.username}\n{self.password}")
-            credentials_file = temp_file.name
-
         try:
-            # Build the CLI command
+            # Verify jboss-cli.sh exists
+            if not os.path.exists(self.jboss_cli_path):
+                self.logger.error(f"JBoss CLI not found at {self.jboss_cli_path}")
+                return {
+                    "success": False,
+                    "error": f"JBoss CLI not found at {self.jboss_cli_path}"
+                }
+
+            # Build the CLI command with exact syntax
             cli_command = [
-                "jboss-cli.sh",
-                "--controller=" + f"{self.host}:{self.port}",
-                "--user=" + self.username,
-                "--password=" + self.password,
-                "--command=" + command
+                self.jboss_cli_path,
+                "--connect",
+                f"--controller={self.host}:{self.port}",
+                f"--user={self.username}",
+                f"--password={self.password}",
+                f"--command={command}"
             ]
+            
+            # Log masked command for security
+            masked_cli_command = self._mask_sensitive_data(cli_command)
+            self.logger.info(f"Executing CLI command: {' '.join(masked_cli_command)}")
             
             # Execute the command
             process = subprocess.run(
                 cli_command,
                 capture_output=True,
                 text=True,
-                timeout=self.timeout
+                timeout=self.timeout,
+                # Protect against shell injection
+                shell=False
             )
             
             # Check for errors
@@ -55,15 +79,25 @@ class JBossCliExecutor:
             
             # Try to parse as JSON if possible
             try:
-                if output.startswith("{") or output.startswith("["):
+                # Specific parsing for JBoss CLI output
+                if output.startswith("{"):
                     result = json.loads(output)
+                    # Check for JBoss CLI specific outcome
+                    if result.get('outcome') == 'success':
+                        return {
+                            "success": True,
+                            "result": result.get('result')
+                        }
+                    else:
+                        return {
+                            "success": False,
+                            "error": result
+                        }
                 else:
-                    result = output
-                
-                return {
-                    "success": True,
-                    "result": result
-                }
+                    return {
+                        "success": True,
+                        "result": output
+                    }
             except json.JSONDecodeError:
                 return {
                     "success": True,
@@ -76,17 +110,20 @@ class JBossCliExecutor:
                 "success": False,
                 "error": f"Command timed out after {self.timeout} seconds"
             }
+        except FileNotFoundError:
+            self.logger.error(f"JBoss CLI executable not found: {self.jboss_cli_path}")
+            return {
+                "success": False,
+                "error": f"JBoss CLI executable not found: {self.jboss_cli_path}"
+            }
         except Exception as e:
             self.logger.error(f"Error executing CLI command: {str(e)}")
             return {
                 "success": False,
                 "error": str(e)
             }
-        finally:
-            # Clean up the temporary file
-            if os.path.exists(credentials_file):
-                os.unlink(credentials_file)
 
+    # Rest of the methods remain the same
     def check_server_status(self):
         """Check if the JBoss server is running"""
         return self.execute_command(":read-attribute(name=server-state)")

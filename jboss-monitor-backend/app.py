@@ -19,8 +19,8 @@ app = Flask(__name__)
 app.config.from_object(Config)
 
 # Enable CORS
-CORS(app)
-
+#CORS(app)
+CORS(app, resources={r"/api/*": {"origins": "http://localhost:3000"}})
 # Register blueprints
 app.register_blueprint(auth_bp, url_prefix='/api/auth')
 app.register_blueprint(hosts_bp, url_prefix='/api/hosts')

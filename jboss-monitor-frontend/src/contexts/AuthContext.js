@@ -1,6 +1,6 @@
 // src/contexts/AuthContext.js
 import React, { createContext, useState, useContext, useEffect } from 'react';
-import { login, register, getProfile } from '../api/auth';
+import * as authApi from '../api/auth';
 
 // Create context
 const AuthContext = createContext();
@@ -17,7 +17,7 @@ export const AuthProvider = ({ children }) => {
     const verifyToken = async () => {
       if (token) {
         try {
-          const profile = await getProfile(token);
+          const profile = await authApi.getProfile(token);
           setCurrentUser(profile);
         } catch (err) {
           console.error('Token verification failed:', err);
@@ -32,12 +32,12 @@ export const AuthProvider = ({ children }) => {
   }, [token]);
 
   // Login handler
-  const handleLogin = async (username, password) => {
+  const login = async (username, password) => {
     setLoading(true);
     setError(null);
 
     try {
-      const response = await login(username, password);
+      const response = await authApi.login(username, password);
       
       // Store token in localStorage
       localStorage.setItem('token', response.token);
@@ -59,15 +59,15 @@ export const AuthProvider = ({ children }) => {
   };
 
   // Register handler
-  const handleRegister = async (username, password, role = 'user') => {
+  const register = async (username, password, role = 'user') => {
     setLoading(true);
     setError(null);
 
     try {
-      await register(username, password, role);
+      await authApi.register(username, password, role);
       
       // Automatically login after registration
-      return await handleLogin(username, password);
+      return await login(username, password);
     } catch (err) {
       setError(err.message || 'Registration failed');
       throw err;
@@ -85,7 +85,11 @@ export const AuthProvider = ({ children }) => {
 
   // Store JBoss credentials
   const storeJbossCredentials = async (environment, username, password) => {
-    // Implementation in the API service
+    try {
+      return await authApi.storeJbossCredentials(token, environment, username, password);
+    } catch (err) {
+      throw err;
+    }
   };
 
   // Context value
@@ -95,8 +99,8 @@ export const AuthProvider = ({ children }) => {
     loading,
     error,
     isAuthenticated: !!currentUser,
-    login: handleLogin,
-    register: handleRegister,
+    login,
+    register,
     logout,
     storeJbossCredentials
   };
@@ -110,7 +114,11 @@ export const AuthProvider = ({ children }) => {
 
 // Custom hook to use auth context
 export const useAuth = () => {
-  return useContext(AuthContext);
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
 };
 
 export default AuthContext;

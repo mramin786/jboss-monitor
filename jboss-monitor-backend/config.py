@@ -23,5 +23,11 @@ class Config:
     MONITORING_INTERVAL = int(os.environ.get('MONITORING_INTERVAL') or 60)  # in seconds
     CLI_TIMEOUT = int(os.environ.get('CLI_TIMEOUT') or 30)  # CLI command timeout in seconds
     
+    # JBoss CLI Credentials from Environment Variables
+    PROD_JBOSS_USERNAME = os.environ.get('PROD_JBOSS_USERNAME')
+    PROD_JBOSS_PASSWORD = os.environ.get('PROD_JBOSS_PASSWORD')
+    NONPROD_JBOSS_USERNAME = os.environ.get('NONPROD_JBOSS_USERNAME')
+    NONPROD_JBOSS_PASSWORD = os.environ.get('NONPROD_JBOSS_PASSWORD')
+    
     # Multithreading settings
     MAX_WORKERS = int(os.environ.get('MAX_WORKERS') or 10)  # Maximum number of worker threads
