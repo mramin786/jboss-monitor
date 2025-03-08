@@ -1,0 +1,12 @@
+[
+  {
+    "id": "e27b681a-de64-4ea5-b44f-3e88d57903c4",
+    "host": "172.20.126.239",
+    "port": 9990,
+    "instance": "standalone",
+    "added_by": "admin",
+    "added_at": "2025-03-08T00:17:50.006553",
+    "last_check": null,
+    "status": "pending"
+  }
+]

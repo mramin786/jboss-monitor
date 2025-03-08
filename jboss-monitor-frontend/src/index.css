@@ -1,0 +1,69 @@
+/* Global Reset and Base Styles */
+body {
+  margin: 0;
+  padding: 0;
+  font-family: 'Roboto', 'Helvetica', 'Arial', sans-serif;
+  background-color: #0a1929;
+  color: #ffffff;
+  line-height: 1.6;
+}
+
+/* Ensure full height and width for root element */
+#root {
+  min-height: 100vh;
+  width: 100%;
+}
+
+/* Scrollbar Styling for Dark Theme */
+::-webkit-scrollbar {
+  width: 12px;
+}
+
+::-webkit-scrollbar-track {
+  background: #102a43;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: #2196f3;
+  border-radius: 6px;
+}
+
+/* Basic Typography */
+h1, h2, h3, h4, h5, h6 {
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  line-height: 1.2;
+  color: #64b5f6;
+}
+
+/* Link Styles */
+a {
+  color: #2196f3;
+  text-decoration: none;
+  transition: color 0.3s ease;
+}
+
+a:hover {
+  color: #64b5f6;
+}
+
+/* Form Element Normalization */
+input, 
+button, 
+select, 
+textarea {
+  font-family: 'Roboto', 'Helvetica', 'Arial', sans-serif;
+}
+
+/* Utility Classes */
+.text-primary {
+  color: #2196f3;
+}
+
+.text-secondary {
+  color: #b3e5fc;
+}
+
+.bg-dark {
+  background-color: #102a43;
+}
