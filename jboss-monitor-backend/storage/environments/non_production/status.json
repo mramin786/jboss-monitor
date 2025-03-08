@@ -1,8 +1,19 @@
 {
   "e27b681a-de64-4ea5-b44f-3e88d57903c4": {
     "instance_status": "up",
-    "datasources": [],
-    "deployments": [],
-    "last_check": "2025-03-08T01:34:24.436389"
+    "datasources": [
+      {
+        "name": "ExampleDS",
+        "type": "data-source",
+        "status": "up"
+      }
+    ],
+    "deployments": [
+      {
+        "name": "hello-jboss.war",
+        "status": "up"
+      }
+    ],
+    "last_check": "2025-03-08T21:05:38.234831"
   }
 }

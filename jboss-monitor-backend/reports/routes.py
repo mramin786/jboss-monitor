@@ -36,6 +36,7 @@ def load_reports_index():
 def save_reports_index(reports):
     """Save reports index to file storage"""
     index_file = get_reports_index_file()
+    os.makedirs(os.path.dirname(index_file), exist_ok=True)
     with open(index_file, 'w') as f:
         json.dump(reports, f, indent=2)
 
@@ -43,14 +44,36 @@ def save_reports_index(reports):
 @token_required
 def get_reports(current_user):
     """Get all reports"""
-    reports = load_reports_index()
-
-    # Sort by creation date (newest first)
-    reports.sort(key=lambda x: x['created_at'], reverse=True)
-
-    return jsonify(reports), 200
-
-@reports_bp.route('/<environment>/generate', methods=['POST'])
+    try:
+        # Ensure directory exists
+        os.makedirs(Config.REPORTS_PATH, exist_ok=True)
+        
+        # Ensure index file exists
+        index_file = get_reports_index_file()
+        if not os.path.exists(index_file):
+            with open(index_file, 'w') as f:
+                json.dump([], f)
+        
+        reports = load_reports_index()
+        
+        # Sort by creation date (newest first)
+        reports.sort(key=lambda x: x.get('created_at', ''), reverse=True)
+        
+        # Create response with cache control headers
+        response = jsonify(reports)
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        response.headers['Pragma'] = 'no-cache'
+        response.headers['Expires'] = '0'
+        return response, 200
+    except Exception as e:
+        import traceback
+        print(f"Error in get_reports: {str(e)}")
+        print(traceback.format_exc())
+        # Return empty array instead of error to prevent UI error
+        response = jsonify([])
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        return response, 200
+@reports_bp.route('/<environment>/generate', methods=['POST'])  # No trailing slash
 @token_required
 def generate_report(current_user, environment):
     """Generate a new report for the specified environment"""
@@ -87,6 +110,9 @@ def generate_report(current_user, environment):
         'filename': f"{report_id}.{format}"
     }
 
+    # Ensure reports directory exists
+    os.makedirs(Config.REPORTS_PATH, exist_ok=True)
+
     # Update reports index
     reports = load_reports_index()
     reports.append(report)
@@ -98,6 +124,8 @@ def generate_report(current_user, environment):
     # Start a thread to generate the report
     def generate_report_thread():
         try:
+            print(f"Starting report generation for report ID: {report_id}")
+            
             # First, update all host statuses
             with ThreadPoolExecutor(max_workers=Config.MAX_WORKERS) as executor:
                 futures = []
@@ -108,7 +136,10 @@ def generate_report(current_user, environment):
 
                 # Wait for all status updates to complete
                 for future in as_completed(futures):
-                    future.result()
+                    try:
+                        future.result()
+                    except Exception as e:
+                        print(f"Error updating host status: {str(e)}")
 
             # Load the updated status
             status = load_status(environment)
@@ -128,11 +159,19 @@ def generate_report(current_user, environment):
                 })
 
             # Generate the report file
-            if format == 'pdf':
-                generate_pdf_report(report_id, environment, host_status)
-            else:  # CSV
-                generate_csv_report(report_id, environment, host_status)
-
+            try:
+                if format == 'pdf':
+                    report_path = generate_pdf_report(report_id, environment, host_status)
+                    print(f"PDF report generated at: {report_path}")
+                else:  # CSV
+                    report_path = generate_csv_report(report_id, environment, host_status)
+                    print(f"CSV report generated at: {report_path}")
+            except Exception as e:
+                import traceback
+                print(f"Error generating report file: {str(e)}")
+                print(traceback.format_exc())
+                raise
+            
             # Update report status
             reports = load_reports_index()
             for r in reports:
@@ -142,107 +181,192 @@ def generate_report(current_user, environment):
                     break
 
             save_reports_index(reports)
+            print(f"Report {report_id} marked as completed")
 
         except Exception as e:
+            import traceback
+            print(f"Error in report generation thread: {str(e)}")
+            print(traceback.format_exc())
+            
             # Update report status to failed
-            reports = load_reports_index()
-            for r in reports:
-                if r['id'] == report_id:
-                    r['status'] = 'failed'
-                    r['error'] = str(e)
-                    break
-
-            save_reports_index(reports)
+            try:
+                reports = load_reports_index()
+                for r in reports:
+                    if r['id'] == report_id:
+                        r['status'] = 'failed'
+                        r['error'] = str(e)
+                        break
+                save_reports_index(reports)
+                print(f"Report {report_id} marked as failed: {str(e)}")
+            except Exception as e2:
+                print(f"Error updating report status: {str(e2)}")
 
     # Start report generation thread
     report_thread = threading.Thread(target=generate_report_thread)
     report_thread.daemon = True
     report_thread.start()
 
-    return jsonify(report), 201
+    # Return immediately with the report info
+    response = jsonify(report)
+    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    return response, 201
 
 @reports_bp.route('/<report_id>', methods=['GET'])
 @token_required
 def get_report(current_user, report_id):
     """Get report details"""
-    reports = load_reports_index()
+    try:
+        reports = load_reports_index()
 
-    # Find the report by ID
-    report = None
-    for r in reports:
-        if r['id'] == report_id:
-            report = r
-            break
+        # Find the report by ID
+        report = None
+        for r in reports:
+            if r['id'] == report_id:
+                report = r
+                break
 
-    if not report:
-        return jsonify({'message': 'Report not found'}), 404
+        if not report:
+            return jsonify({'message': 'Report not found'}), 404
 
-    return jsonify(report), 200
+        # Return with cache control headers
+        response = jsonify(report)
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        response.headers['Pragma'] = 'no-cache'
+        response.headers['Expires'] = '0'
+        return response, 200
+    except Exception as e:
+        return jsonify({'message': f'Error: {str(e)}'}), 500
 
 @reports_bp.route('/<report_id>/download', methods=['GET'])
 @token_required
 def download_report(current_user, report_id):
     """Download a report file"""
-    reports = load_reports_index()
+    try:
+        reports = load_reports_index()
 
-    # Find the report by ID
-    report = None
-    for r in reports:
-        if r['id'] == report_id:
-            report = r
-            break
+        # Find the report by ID
+        report = None
+        for r in reports:
+            if r['id'] == report_id:
+                report = r
+                break
 
-    if not report:
-        return jsonify({'message': 'Report not found'}), 404
+        if not report:
+            return jsonify({'message': 'Report not found'}), 404
 
-    if report['status'] != 'completed':
-        return jsonify({'message': 'Report is not ready for download'}), 400
+        if report['status'] != 'completed':
+            return jsonify({'message': 'Report is not ready for download'}), 400
 
-    # Get the report file path
-    report_file = get_report_file(report_id, report['format'])
+        # Get the report file path
+        report_file = get_report_file(report_id, report['format'])
 
-    if not os.path.exists(report_file):
-        return jsonify({'message': 'Report file not found'}), 404
+        if not os.path.exists(report_file):
+            return jsonify({'message': 'Report file not found'}), 404
 
-    # Set content type based on format
-    content_type = 'application/pdf' if report['format'] == 'pdf' else 'text/csv'
+        # Set content type based on format
+        content_type = 'application/pdf' if report['format'] == 'pdf' else 'text/csv'
 
-    # Generate a more descriptive filename
-    filename = f"jboss_monitor_{report['environment']}_{datetime.now().strftime('%Y%m%d')}_{report_id[:8]}.{report['format']}"
+        # Generate a more descriptive filename
+        filename = f"jboss_monitor_{report['environment']}_{datetime.now().strftime('%Y%m%d')}_{report_id[:8]}.{report['format']}"
 
-    return send_file(
-        report_file,
-        mimetype=content_type,
-        as_attachment=True,
-        download_name=filename
-    )
-
-@reports_bp.route('/<report_id>', methods=['DELETE'])
+        # Return with cache control headers
+        response = send_file(
+            report_file,
+            mimetype=content_type,
+            as_attachment=True,
+            download_name=filename
+        )
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        response.headers['Pragma'] = 'no-cache'
+        response.headers['Expires'] = '0'
+        return response
+    except Exception as e:
+        import traceback
+        print(f"Error downloading report: {str(e)}")
+        print(traceback.format_exc())
+        return jsonify({'message': f'Error: {str(e)}'}), 500
+@reports_bp.route('/<report_id>', methods=['DELETE'])  # No trailing slash
 @token_required
 def delete_report(current_user, report_id):
     """Delete a report"""
-    reports = load_reports_index()
+    try:
+        reports = load_reports_index()
 
-    # Find the report by ID
-    report_index = None
-    for i, r in enumerate(reports):
-        if r['id'] == report_id:
-            report_index = i
-            report = r
-            break
+        # Find the report by ID
+        report_index = None
+        for i, r in enumerate(reports):
+            if r['id'] == report_id:
+                report_index = i
+                report = r
+                break
 
-    if report_index is None:
-        return jsonify({'message': 'Report not found'}), 404
+        if report_index is None:
+            return jsonify({'message': 'Report not found'}), 404
 
-    # Delete the report file
-    report_file = get_report_file(report_id, report['format'])
-    if os.path.exists(report_file):
-        os.remove(report_file)
+        # Delete the report file
+        report_file = get_report_file(report_id, report['format'])
+        if os.path.exists(report_file):
+            os.remove(report_file)
 
-    # Remove from index
-    del reports[report_index]
-    save_reports_index(reports)
+        # Remove from index
+        del reports[report_index]
+        save_reports_index(reports)
 
-    return jsonify({
-        'message': 'Report deleted successfully'
-    }), 200
+        # Return with cache control headers
+        response = jsonify({
+            'message': 'Report deleted successfully'
+        })
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        return response, 200
+    except Exception as e:
+        return jsonify({'message': f'Error: {str(e)}'}), 500
+
+@reports_bp.route('/debug', methods=['GET'])
+@token_required
+def debug_reports(current_user):
+    """Debug endpoint to check reports system"""
+    try:
+        reports_path = Config.REPORTS_PATH
+        index_file = get_reports_index_file()
+        
+        # Check reports directory
+        dir_exists = os.path.exists(reports_path)
+        dir_writable = os.access(reports_path, os.W_OK) if dir_exists else False
+        
+        # Check index file
+        index_exists = os.path.exists(index_file)
+        index_content = None
+        if index_exists:
+            try:
+                with open(index_file, 'r') as f:
+                    index_content = json.load(f)
+            except Exception as e:
+                index_content = f"Error reading index: {str(e)}"
+        
+        # Check report files
+        report_files = []
+        if dir_exists:
+            for f in os.listdir(reports_path):
+                if f.endswith('.pdf') or f.endswith('.csv'):
+                    file_path = os.path.join(reports_path, f)
+                    report_files.append({
+                        'name': f,
+                        'size': os.path.getsize(file_path),
+                        'modified': datetime.fromtimestamp(os.path.getmtime(file_path)).isoformat()
+                    })
+        
+        debug_info = {
+            'reports_path': reports_path,
+            'directory_exists': dir_exists,
+            'directory_writable': dir_writable,
+            'index_file': index_file,
+            'index_exists': index_exists,
+            'index_content': index_content,
+            'report_files': report_files
+        }
+        
+        response = jsonify(debug_info)
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        return response, 200
+    except Exception as e:
+        return jsonify({'message': f'Error: {str(e)}'}), 500

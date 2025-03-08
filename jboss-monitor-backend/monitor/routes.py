@@ -6,11 +6,19 @@ from datetime import datetime
 import time
 import threading
 import traceback
+import logging
 
 from auth.routes import token_required
 from config import Config
 from hosts.routes import load_hosts, get_environment_path
 from monitor.cli_executor import JBossCliExecutor
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
 monitor_bp = Blueprint('monitor', __name__)
 
@@ -29,6 +37,7 @@ def load_status(environment):
 def save_status(status, environment):
     """Save status to file storage"""
     status_file = get_status_file(environment)
+    os.makedirs(os.path.dirname(status_file), exist_ok=True)
     with open(status_file, 'w') as f:
         json.dump(status, f, indent=2)
 
@@ -42,12 +51,138 @@ def get_jboss_credentials(environment):
 
     return None, None
 
+def parse_datasources(ds_data):
+    """
+    Parse datasources from JBoss CLI response
+    Handles different JBoss versions and response formats
+    
+    Returns a list of datasource dictionaries with name, type and status
+    """
+    datasources = []
+    logger.info(f"Parsing datasources from data: {type(ds_data)}")
+    
+    # If not a dictionary, we can't parse it
+    if not isinstance(ds_data, dict):
+        logger.warning(f"Datasource data is not a dictionary: {type(ds_data)}")
+        return datasources
+    
+    try:
+        # Format 1: {'data-source': {'name1': {...}, 'name2': {...}}, 'xa-data-source': {...}}
+        # Common in newer JBoss versions
+        if 'data-source' in ds_data and isinstance(ds_data['data-source'], dict):
+            for ds_name, ds_details in ds_data['data-source'].items():
+                logger.info(f"Processing datasource: {ds_name}")
+                enabled = ds_details.get('enabled', False)
+                datasources.append({
+                    'name': ds_name,
+                    'type': 'data-source',
+                    'status': 'up' if enabled else 'down'
+                })
+        
+        # Format 2: {'data-source': ['name1', 'name2'], 'xa-data-source': ['name3']}
+        # Common in some older JBoss versions
+        elif 'data-source' in ds_data and isinstance(ds_data['data-source'], list):
+            for ds_name in ds_data['data-source']:
+                logger.info(f"Processing datasource (list format): {ds_name}")
+                datasources.append({
+                    'name': ds_name,
+                    'type': 'data-source',
+                    'status': 'up'  # Assume up since we can't determine from list format
+                })
+        
+        # Handle XA datasources with dictionary format
+        if 'xa-data-source' in ds_data and isinstance(ds_data['xa-data-source'], dict):
+            for ds_name, ds_details in ds_data['xa-data-source'].items():
+                logger.info(f"Processing XA datasource: {ds_name}")
+                enabled = ds_details.get('enabled', False)
+                datasources.append({
+                    'name': ds_name,
+                    'type': 'xa-data-source',
+                    'status': 'up' if enabled else 'down'
+                })
+        
+        # Handle XA datasources with list format
+        elif 'xa-data-source' in ds_data and isinstance(ds_data['xa-data-source'], list):
+            for ds_name in ds_data['xa-data-source']:
+                logger.info(f"Processing XA datasource (list format): {ds_name}")
+                datasources.append({
+                    'name': ds_name,
+                    'type': 'xa-data-source',
+                    'status': 'up'  # Assume up since we can't determine from list format
+                })
+        
+        return datasources
+    except Exception as e:
+        logger.error(f"Error parsing datasources: {str(e)}")
+        traceback.print_exc()
+        return []
+
+def parse_deployments(deployment_data):
+    """
+    Parse deployments from JBoss CLI response
+    Handles different JBoss versions and response formats
+    
+    Returns a list of deployment dictionaries with name and status
+    """
+    deployments = []
+    logger.info(f"Parsing deployments from data: {type(deployment_data)}")
+    
+    try:
+        # Format 1: Dictionary with deployment names as keys
+        # Common in many JBoss versions
+        if isinstance(deployment_data, dict):
+            for deployment_name, deployment_details in deployment_data.items():
+                if isinstance(deployment_details, dict):
+                    logger.info(f"Processing deployment: {deployment_name}")
+                    enabled = deployment_details.get('enabled', False)
+                    deployments.append({
+                        'name': deployment_name,
+                        'status': 'up' if enabled else 'down'
+                    })
+        
+        # Format 2: List of deployment objects
+        # Sometimes seen in JBoss EAP
+        elif isinstance(deployment_data, list):
+            for deployment in deployment_data:
+                if isinstance(deployment, dict):
+                    # Try to extract from various formats
+                    if 'address' in deployment and isinstance(deployment['address'], list) and len(deployment['address']) > 0:
+                        # Extract from address format like [{"deployment": "example.war"}]
+                        for addr_part in deployment['address']:
+                            if isinstance(addr_part, dict) and 'deployment' in addr_part:
+                                deployment_name = addr_part['deployment']
+                                enabled = True
+                                if 'result' in deployment and isinstance(deployment['result'], dict):
+                                    enabled = deployment['result'].get('enabled', True)
+                                
+                                logger.info(f"Processing deployment from address: {deployment_name}")
+                                deployments.append({
+                                    'name': deployment_name,
+                                    'status': 'up' if enabled else 'down'
+                                })
+                    elif 'name' in deployment:
+                        # Direct name attribute format
+                        deployment_name = deployment['name']
+                        enabled = deployment.get('enabled', True)
+                        
+                        logger.info(f"Processing deployment with name attr: {deployment_name}")
+                        deployments.append({
+                            'name': deployment_name,
+                            'status': 'up' if enabled else 'down'
+                        })
+        
+        return deployments
+    except Exception as e:
+        logger.error(f"Error parsing deployments: {str(e)}")
+        traceback.print_exc()
+        return []
+
 def monitor_host(environment, host, username, password):
     """Monitor a single host and update its status"""
     host_id = host['id']
-    status = load_status(environment)
+    logger.info(f"Starting monitoring for host: {host['host']}:{host['port']}")
     
-    print(f"Monitoring host: {host['host']}:{host['port']}")
+    status = load_status(environment)
     
     # Initialize status for this host if not exists
     if host_id not in status:
@@ -68,9 +203,10 @@ def monitor_host(environment, host, username, password):
     
     # Check server status
     server_result = cli.check_server_status()
-    print(f"Server status check result: {server_result['success']}")
+    logger.info(f"Server status result: {server_result}")
     
     if not server_result['success']:
+        logger.warning(f"Server check failed for {host['host']}:{host['port']}")
         status[host_id]['instance_status'] = 'down'
         status[host_id]['last_check'] = datetime.now().isoformat()
         save_status(status, environment)
@@ -81,91 +217,36 @@ def monitor_host(environment, host, username, password):
     
     # Get datasources
     datasources_result = cli.get_datasources()
-    print(f"Datasource result success: {datasources_result['success']}")
+    logger.info(f"Datasource check result success: {datasources_result['success']}")
     
-    if datasources_result['success']:
-        try:
-            # Parse datasources carefully
-            ds_data = datasources_result['result']
-            print(f"Datasource data structure: {type(ds_data)}")
-            datasources = []
-            
-            # Handle data-source
-            if isinstance(ds_data, dict) and 'data-source' in ds_data:
-                # Get the actual datasource dictionary
-                ds_dict = ds_data['data-source']
-                print(f"Datasource dict type: {type(ds_dict)}")
-                
-                # In your JBoss version, data-source is a dictionary with datasource names as keys
-                for ds_name, ds_details in ds_dict.items():
-                    print(f"Processing datasource: {ds_name}")
-                    enabled = ds_details.get('enabled', False)
-                    datasources.append({
-                        'name': ds_name,
-                        'type': 'data-source',
-                        'status': 'up' if enabled else 'down'
-                    })
-            
-            # Handle xa-data-source if present
-            if isinstance(ds_data, dict) and 'xa-data-source' in ds_data and ds_data['xa-data-source']:
-                xa_dict = ds_data['xa-data-source']
-                if isinstance(xa_dict, dict):
-                    for ds_name, ds_details in xa_dict.items():
-                        enabled = ds_details.get('enabled', False)
-                        datasources.append({
-                            'name': ds_name,
-                            'type': 'xa-data-source',
-                            'status': 'up' if enabled else 'down'
-                        })
-            
-            print(f"Parsed datasources: {datasources}")
-            status[host_id]['datasources'] = datasources
-        except Exception as e:
-            print(f"Datasource parsing error: {str(e)}")
-            traceback.print_exc()
-            status[host_id]['datasources'] = []
+    if datasources_result['success'] and 'result' in datasources_result:
+        logger.info(f"Raw datasource result: {json.dumps(datasources_result['result'])[:500]}...")
+        datasources = parse_datasources(datasources_result['result'])
+        logger.info(f"Parsed {len(datasources)} datasources")
+        status[host_id]['datasources'] = datasources
+    else:
+        logger.warning(f"Failed to get datasources: {datasources_result.get('error', 'Unknown error')}")
+        status[host_id]['datasources'] = []
     
     # Get deployments
     deployments_result = cli.get_deployments()
-    print(f"Deployment result success: {deployments_result['success']}")
+    logger.info(f"Deployment check result success: {deployments_result['success']}")
     
-    if deployments_result['success']:
-        try:
-            # Parse deployments carefully
-            deployments_data = deployments_result['result']
-            print(f"Deployment data type: {type(deployments_data)}")
-            deployments = []
-            
-            # For your JBoss version, deployments are returned as an array
-            if isinstance(deployments_data, list):
-                for deployment in deployments_data:
-                    print(f"Processing deployment item: {deployment['address'][0][1] if 'address' in deployment else 'unknown'}")
-                    # Extract deployment details
-                    if 'result' in deployment and isinstance(deployment['result'], dict):
-                        deployment_details = deployment['result']
-                        deployment_name = deployment['address'][0][1]  # Extract name from address
-                        
-                        # Check if deployment is enabled
-                        enabled = deployment_details.get('enabled', False)
-                        
-                        deployments.append({
-                            'name': deployment_name,
-                            'status': 'up' if enabled else 'down'
-                        })
-            
-            print(f"Parsed deployments: {deployments}")
-            status[host_id]['deployments'] = deployments
-        except Exception as e:
-            print(f"Deployment parsing error: {str(e)}")
-            traceback.print_exc()
-            status[host_id]['deployments'] = []
+    if deployments_result['success'] and 'result' in deployments_result:
+        logger.info(f"Raw deployment result: {json.dumps(deployments_result['result'])[:500]}...")
+        deployments = parse_deployments(deployments_result['result'])
+        logger.info(f"Parsed {len(deployments)} deployments")
+        status[host_id]['deployments'] = deployments
+    else:
+        logger.warning(f"Failed to get deployments: {deployments_result.get('error', 'Unknown error')}")
+        status[host_id]['deployments'] = []
     
     # Update last check timestamp
     status[host_id]['last_check'] = datetime.now().isoformat()
     
     # Save updated status
     save_status(status, environment)
-    print(f"Saved status for host {host['host']}")
+    logger.info(f"Completed monitoring for host: {host['host']}:{host['port']}")
 
 @monitor_bp.route('/<environment>/status', methods=['GET'])
 @token_required
@@ -245,6 +326,12 @@ def check_all_hosts(current_user, environment):
 
     # Get all hosts
     hosts = load_hosts(environment)
+    
+    if not hosts:
+        return jsonify({
+            'message': 'No hosts found for this environment',
+            'host_count': 0
+        }), 200
 
     # Create a thread to run all checks in background
     def run_checks():
@@ -259,3 +346,66 @@ def check_all_hosts(current_user, environment):
         'message': 'Check initiated for all hosts',
         'host_count': len(hosts)
     }), 200
+
+@monitor_bp.route('/<environment>/debug', methods=['GET'])
+@token_required
+def debug_environment(current_user, environment):
+    """Get debug information for the specified environment"""
+    if environment not in ['production', 'non_production']:
+        return jsonify({'message': 'Invalid environment'}), 400
+    
+    # Get environment details
+    env_path = get_environment_path(environment)
+    hosts = load_hosts(environment)
+    status = load_status(environment)
+    
+    # Get JBoss credentials
+    username, password = get_jboss_credentials(environment)
+    has_credentials = bool(username and password)
+    
+    # Get file permissions and directory structure
+    env_stats = {
+        'path': env_path,
+        'exists': os.path.exists(env_path),
+        'is_dir': os.path.isdir(env_path) if os.path.exists(env_path) else False,
+        'permissions': oct(os.stat(env_path).st_mode)[-3:] if os.path.exists(env_path) else None,
+        'files': os.listdir(env_path) if os.path.exists(env_path) and os.path.isdir(env_path) else []
+    }
+    
+    # Get status file details
+    status_file = get_status_file(environment)
+    status_stats = {
+        'path': status_file,
+        'exists': os.path.exists(status_file),
+        'size': os.path.getsize(status_file) if os.path.exists(status_file) else 0,
+        'last_modified': datetime.fromtimestamp(os.path.getmtime(status_file)).isoformat() if os.path.exists(status_file) else None
+    }
+    
+    return jsonify({
+        'environment': environment,
+        'host_count': len(hosts),
+        'status_count': len(status),
+        'has_credentials': has_credentials,
+        'env_directory': env_stats,
+        'status_file': status_stats
+    }), 200
+
+@monitor_bp.route('/<environment>/status/<host_id>', methods=['DELETE'])
+@token_required
+def clear_host_status(current_user, environment, host_id):
+    """Clear status for a specific host"""
+    if environment not in ['production', 'non_production']:
+        return jsonify({'message': 'Invalid environment'}), 400
+    
+    status = load_status(environment)
+    
+    if host_id in status:
+        del status[host_id]
+        save_status(status, environment)
+        return jsonify({
+            'message': 'Host status cleared successfully'
+        }), 200
+    else:
+        return jsonify({
+            'message': 'Host status not found'
+        }), 404

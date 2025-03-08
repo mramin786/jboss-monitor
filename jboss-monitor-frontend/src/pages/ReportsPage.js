@@ -27,9 +27,7 @@ import {
   FormControl,
   InputLabel,
   Select,
-  MenuItem,
-  Divider,
-  Grid
+  MenuItem
 } from '@mui/material';
 import {
   PictureAsPdf as PdfIcon,
@@ -42,7 +40,7 @@ import {
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { getReports, generateReport, deleteReport, getReportDownloadUrl } from '../api/reports';
+import { getReports, generateReport, deleteReport, downloadReport } from '../api/reports';
 
 // Generate Report Dialog Component
 const GenerateReportDialog = ({ open, onClose, onSubmit }) => {
@@ -226,32 +224,60 @@ const ReportsPage = () => {
   const { token } = useAuth();
   const navigate = useNavigate();
   
-  // Fetch reports on mount
-  useEffect(() => {
-    const fetchReports = async () => {
-      setLoading(true);
-      setError(null);
-      
-      try {
-        const reportsData = await getReports(token);
-        setReports(reportsData);
-      } catch (err) {
-        setError(err.message || 'Failed to load reports');
-      } finally {
-        setLoading(false);
-      }
-    };
+  // Fetch reports function
+  const fetchReports = async () => {
+    setLoading(prev => reports.length > 0 ? false : true);
+    setError(null);
     
+    try {
+      const reportsData = await getReports();
+      if (Array.isArray(reportsData)) {
+        setReports(reportsData);
+        setError(null);
+      } else {
+        // Handle unexpected response format
+        console.warn("Unexpected reports data format:", reportsData);
+        setError("Received invalid data format from server");
+      }
+    } catch (err) {
+      console.error("Error in fetchReports:", err);
+      // Only set error if we don't have reports already
+      if (reports.length === 0) {
+        setError(err.message || 'Failed to load reports');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  // Fetch reports on mount and setup polling
+  useEffect(() => {
+    // Initial fetch
     fetchReports();
     
-    // Set up refresh interval (every 30 seconds)
+    // Check if any reports are generating
+    const hasGeneratingReports = reports.some(report => report.status === 'generating');
+    
+    // Set up refresh interval - more frequent if reports are generating
+    const interval = hasGeneratingReports ? 5000 : 15000;
+    
     const intervalId = setInterval(() => {
       fetchReports();
-    }, 30000);
+    }, interval);
     
-    // Clean up interval on unmount
+    // Clean up interval on unmount or when dependency changes
     return () => clearInterval(intervalId);
-  }, [token]);
+  }, [token, reports.some(report => report.status === 'generating')]);
+  
+  // Manual refresh function
+  const handleRefresh = () => {
+    fetchReports();
+    setSnackbar({
+      open: true,
+      message: 'Refreshing reports...',
+      severity: 'info'
+    });
+  };
   
   // Handle generate report
   const handleGenerateReport = async (environment, username, password, format) => {
@@ -304,7 +330,7 @@ const ReportsPage = () => {
   };
   
   // Handle download report
-  const handleDownloadReport = (report) => {
+  const handleDownloadReport = async (report) => {
     if (report.status !== 'completed') {
       setSnackbar({
         open: true,
@@ -314,14 +340,29 @@ const ReportsPage = () => {
       return;
     }
     
-    // Create download URL
-    const downloadUrl = getReportDownloadUrl(report.id);
-    
-    // Add JWT token to URL
-    const url = `${downloadUrl}?token=${token}`;
-    
-    // Open in new tab
-    window.open(url, '_blank');
+    try {
+      setSnackbar({
+        open: true,
+        message: 'Downloading report...',
+        severity: 'info'
+      });
+      
+      // Use the downloadReport function to handle authentication properly
+      await downloadReport(report.id);
+      
+      setSnackbar({
+        open: true,
+        message: 'Download successful',
+        severity: 'success'
+      });
+    } catch (err) {
+      console.error("Download error:", err);
+      setSnackbar({
+        open: true,
+        message: 'Failed to download report: ' + (err.message || 'Unknown error'),
+        severity: 'error'
+      });
+    }
   };
   
   // Close snackbar
@@ -370,22 +411,31 @@ const ReportsPage = () => {
           Reports
         </Typography>
         
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={() => setGenerateDialogOpen(true)}
-        >
-          Generate Report
-        </Button>
+        <Box sx={{ display: 'flex', gap: 2 }}>
+          <Button
+            variant="outlined"
+            startIcon={<RefreshIcon />}
+            onClick={handleRefresh}
+          >
+            Refresh
+          </Button>
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={() => setGenerateDialogOpen(true)}
+          >
+            Generate Report
+          </Button>
+        </Box>
       </Box>
       
-      {error && (
+      {error && reports.length === 0 && (
         <Alert severity="error" sx={{ mb: 3 }}>
           {error}
         </Alert>
       )}
       
-      {reports.length === 0 ? (
+      {reports.length === 0 && !loading ? (
         <Card>
           <CardContent sx={{ textAlign: 'center', py: 5 }}>
             <Typography variant="h6" color="text.secondary" gutterBottom>
@@ -445,6 +495,7 @@ const ReportsPage = () => {
                       label={report.status.toUpperCase()} 
                       color={getStatusColor(report.status)}
                       size="small"
+                      icon={report.status === 'generating' ? <CircularProgress size={16} color="inherit" /> : undefined}
                     />
                   </TableCell>
                   <TableCell align="right">

@@ -21,12 +21,21 @@ logger = logging.getLogger(__name__)
 def get_system_credentials(environment):
     """Get system monitoring credentials for the environment"""
     if environment == 'production':
-        return Config.PROD_JBOSS_USERNAME, Config.PROD_JBOSS_PASSWORD
+        username = Config.PROD_JBOSS_USERNAME
+        password = Config.PROD_JBOSS_PASSWORD
     elif environment == 'non_production':
-        return Config.NONPROD_JBOSS_USERNAME, Config.NONPROD_JBOSS_PASSWORD
+        username = Config.NONPROD_JBOSS_USERNAME
+        password = Config.NONPROD_JBOSS_PASSWORD
+    else:
+        logger.warning(f"Unknown environment: {environment}")
+        return None, None
     
-    logger.warning(f"No system credentials found for {environment} environment")
-    return None, None
+    if not username or not password:
+        logger.warning(f"No system credentials found for {environment} environment")
+    else:
+        logger.info(f"Credentials found for {environment} environment")
+    
+    return username, password
 
 def monitor_environment(environment):
     """Monitor all hosts in an environment"""
@@ -44,11 +53,14 @@ def monitor_environment(environment):
         logger.info(f"No hosts found for {environment} environment")
         return
     
+    logger.info(f"Found {len(hosts)} hosts for {environment} environment")
+    
     # Use ThreadPoolExecutor for parallel monitoring
     with ThreadPoolExecutor(max_workers=Config.MAX_WORKERS) as executor:
         # Submit monitoring tasks
         futures = []
         for host in hosts:
+            logger.info(f"Submitting monitoring task for {host['host']}:{host['port']}")
             futures.append(
                 executor.submit(monitor_host, environment, host, username, password)
             )
@@ -62,20 +74,35 @@ def monitor_environment(environment):
 
 def monitoring_worker():
     """Background worker that continuously monitors all environments"""
+    logger.info("Monitoring worker started")
+    
     while True:
         try:
+            start_time = time.time()
+            logger.info("Starting monitoring cycle")
+            
             # Monitor production environment
             monitor_environment('production')
             
             # Monitor non-production environment
             monitor_environment('non_production')
             
+            # Calculate elapsed time
+            elapsed = time.time() - start_time
+            logger.info(f"Monitoring cycle completed in {elapsed:.2f} seconds")
+            
+            # Calculate wait time (ensure we don't wait negative time)
+            wait_time = max(1, Config.MONITORING_INTERVAL - elapsed)
+            logger.info(f"Waiting {wait_time:.2f} seconds for next cycle")
+            
             # Wait for next monitoring cycle
-            logger.info(f"Monitoring cycle completed. Waiting {Config.MONITORING_INTERVAL} seconds for next cycle")
-            time.sleep(Config.MONITORING_INTERVAL)
+            time.sleep(wait_time)
         
         except Exception as e:
             logger.error(f"Error in monitoring worker: {str(e)}")
+            # Add stack trace for debugging
+            import traceback
+            logger.error(traceback.format_exc())
             time.sleep(10)  # Wait a bit before retrying
 
 def start_monitoring_worker():
@@ -87,15 +114,28 @@ def start_monitoring_worker():
     os.makedirs(Config.NONPROD_ENV_PATH, exist_ok=True)
     
     # Check system credentials
-    prod_creds = get_system_credentials('production')
-    nonprod_creds = get_system_credentials('non_production')
+    prod_username, prod_password = get_system_credentials('production')
+    nonprod_username, nonprod_password = get_system_credentials('non_production')
     
     # Log warning if credentials are missing
-    if not prod_creds[0] or not prod_creds[1]:
+    if not prod_username or not prod_password:
         logger.warning("Production JBoss CLI credentials are not set in environment variables")
     
-    if not nonprod_creds[0] or not nonprod_creds[1]:
+    if not nonprod_username or not nonprod_password:
         logger.warning("Non-Production JBoss CLI credentials are not set in environment variables")
     
-    # Start monitoring
-    monitoring_worker()
+    # Start monitoring in a separate thread to avoid blocking app startup
+    def run_monitoring():
+        try:
+            logger.info("Running monitoring worker in background thread")
+            monitoring_worker()
+        except Exception as e:
+            logger.error(f"Fatal error in monitoring worker thread: {str(e)}")
+            import traceback
+            logger.error(traceback.format_exc())
+    
+    # Create and start the thread
+    monitoring_thread = threading.Thread(target=run_monitoring)
+    monitoring_thread.daemon = True  # Make thread a daemon so it exits when main thread exits
+    monitoring_thread.start()
+    logger.info("Monitoring worker thread started")
