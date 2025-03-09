@@ -73,7 +73,7 @@ def monitor_environment(environment):
                 logger.error(f"Error in monitoring task: {str(e)}")
 
 def monitoring_worker():
-    """Background worker that continuously monitors all environments"""
+    """Background worker that continuously monitors all environments with better error handling"""
     logger.info("Monitoring worker started")
     
     while True:
@@ -82,10 +82,20 @@ def monitoring_worker():
             logger.info("Starting monitoring cycle")
             
             # Monitor production environment
-            monitor_environment('production')
+            try:
+                monitor_environment('production')
+            except Exception as e:
+                logger.error(f"Error monitoring production environment: {str(e)}")
+                import traceback
+                logger.error(traceback.format_exc())
             
             # Monitor non-production environment
-            monitor_environment('non_production')
+            try:
+                monitor_environment('non_production')
+            except Exception as e:
+                logger.error(f"Error monitoring non-production environment: {str(e)}")
+                import traceback
+                logger.error(traceback.format_exc())
             
             # Calculate elapsed time
             elapsed = time.time() - start_time
@@ -104,7 +114,6 @@ def monitoring_worker():
             import traceback
             logger.error(traceback.format_exc())
             time.sleep(10)  # Wait a bit before retrying
-
 def start_monitoring_worker():
     """Start the background monitoring worker"""
     logger.info("Starting background monitoring worker")

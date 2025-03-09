@@ -41,6 +41,7 @@ def save_reports_index(reports):
         json.dump(reports, f, indent=2)
 
 @reports_bp.route('/', methods=['GET'])
+@reports_bp.route('', methods=['GET'])
 @token_required
 def get_reports(current_user):
     """Get all reports"""
@@ -73,6 +74,7 @@ def get_reports(current_user):
         response = jsonify([])
         response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
         return response, 200
+
 @reports_bp.route('/<environment>/generate', methods=['POST'])  # No trailing slash
 @token_required
 def generate_report(current_user, environment):
@@ -285,6 +287,7 @@ def download_report(current_user, report_id):
         print(f"Error downloading report: {str(e)}")
         print(traceback.format_exc())
         return jsonify({'message': f'Error: {str(e)}'}), 500
+
 @reports_bp.route('/<report_id>', methods=['DELETE'])  # No trailing slash
 @token_required
 def delete_report(current_user, report_id):

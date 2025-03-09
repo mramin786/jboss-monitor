@@ -282,6 +282,7 @@ const ReportsPage = () => {
   // Handle generate report
   const handleGenerateReport = async (environment, username, password, format) => {
     try {
+      console.log(`Generating ${format} report for ${environment}`);
       const result = await generateReport(token, environment, username, password, format);
       
       // Add the new report to the list
@@ -295,6 +296,7 @@ const ReportsPage = () => {
       
       return result;
     } catch (err) {
+      console.error("Report generation error:", err);
       throw err;
     }
   };
@@ -304,6 +306,7 @@ const ReportsPage = () => {
     if (!selectedReport) return;
     
     try {
+      console.log(`Deleting report: ${selectedReport.id}`);
       await deleteReport(token, selectedReport.id);
       
       // Remove the deleted report from the list
@@ -315,6 +318,7 @@ const ReportsPage = () => {
         severity: 'success'
       });
     } catch (err) {
+      console.error("Delete error:", err);
       setSnackbar({
         open: true,
         message: err.message || 'Failed to delete report',
@@ -511,8 +515,7 @@ const ReportsPage = () => {
                           </IconButton>
                         </span>
                       </Tooltip>
-                      
-                      <Tooltip title="Delete Report">
+                     <Tooltip title="Delete Report">
                         <IconButton 
                           color="error"
                           onClick={() => openDeleteDialog(report)}
@@ -563,4 +566,4 @@ const ReportsPage = () => {
   );
 };
 
-export default ReportsPage;
+export default ReportsPage; 

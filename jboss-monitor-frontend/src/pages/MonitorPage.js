@@ -429,44 +429,26 @@ const MonitorPage = ({ environment }) => {
     message: '',
     severity: 'success'
   });
+  const [refreshing, setRefreshing] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState(null);
+  
+  // Add a new stats state instead of calculating it on render
+  const [stats, setStats] = useState({
+    hosts: { total: 0, up: 0, down: 0, unknown: 0, upPercentage: 0 },
+    datasources: { total: 0, up: 0, upPercentage: 0 },
+    deployments: { total: 0, up: 0, upPercentage: 0 }
+  });
   
   const { token } = useAuth();
   const navigate = useNavigate();
   
   const envTitle = environment === 'production' ? 'Production' : 'Non-Production';
   
-  // Fetch hosts on mount and when environment changes
-  useEffect(() => {
-    const fetchHosts = async () => {
-      setLoading(true);
-      setError(null);
-      
-      try {
-        const hostsData = await getMonitorStatus(token, environment);
-        setHosts(hostsData);
-      } catch (err) {
-        setError(err.message || `Failed to load ${envTitle} hosts`);
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    fetchHosts();
-    
-    // Set up refresh interval (every 30 seconds)
-    const intervalId = setInterval(() => {
-      fetchHosts();
-    }, 30000);
-    
-    // Clean up interval on unmount
-    return () => clearInterval(intervalId);
-  }, [token, environment, envTitle]);
-  
-  // Compute dashboard statistics
-  const getStats = () => {
-    const total = hosts.length;
-    const up = hosts.filter(h => h.status?.instance_status === 'up').length;
-    const down = hosts.filter(h => h.status?.instance_status === 'down').length;
+  // Move the getStats function to a pure calculation function
+  const calculateStats = (hostsData) => {
+    const total = hostsData.length;
+    const up = hostsData.filter(h => h.status?.instance_status === 'up').length;
+    const down = hostsData.filter(h => h.status?.instance_status === 'down').length;
     const unknown = total - up - down;
     
     const upPercentage = total > 0 ? (up / total) * 100 : 0;
@@ -477,7 +459,7 @@ const MonitorPage = ({ environment }) => {
     let totalDeployments = 0;
     let upDeployments = 0;
     
-    hosts.forEach(host => {
+    hostsData.forEach(host => {
       const datasources = host.status?.datasources || [];
       totalDatasources += datasources.length;
       upDatasources += datasources.filter(ds => ds.status === 'up').length;
@@ -502,7 +484,42 @@ const MonitorPage = ({ environment }) => {
     };
   };
   
-  const stats = getStats();
+  // Fetch hosts function with improved error handling
+  const fetchHosts = async () => {
+    setRefreshing(true);
+    try {
+      const hostsData = await getMonitorStatus(token, environment);
+      setHosts(hostsData);
+      
+      // Force stats recalculation after host update
+      setStats(calculateStats(hostsData));
+      
+      setError(null);
+      setLastUpdated(new Date());
+    } catch (err) {
+      console.error("Error fetching host data:", err);
+      // Only show error if we don't have data already
+      if (hosts.length === 0) {
+        setError(err.message || `Failed to load ${envTitle} hosts`);
+      }
+    } finally {
+      setRefreshing(false);
+    }
+  };
+  
+  // Fetch hosts on mount and when environment changes
+  useEffect(() => {
+    // Initial fetch
+    fetchHosts();
+    
+    // Set up refresh interval (every 3 seconds for live-like updates)
+    const intervalId = setInterval(() => {
+      fetchHosts();
+    }, 3000);
+    
+    // Clean up interval on unmount
+    return () => clearInterval(intervalId);
+  }, [token, environment]);
   
   // Handle refresh all hosts
   const handleRefreshAll = async () => {
@@ -517,9 +534,7 @@ const MonitorPage = ({ environment }) => {
       
       // Refresh the data after a short delay
       setTimeout(() => {
-        getMonitorStatus(token, environment)
-          .then(data => setHosts(data))
-          .catch(err => console.error('Failed to refresh hosts:', err));
+        fetchHosts();
       }, 2000);
     } catch (err) {
       setSnackbar({
@@ -543,9 +558,7 @@ const MonitorPage = ({ environment }) => {
       
       // Refresh the data after a short delay
       setTimeout(() => {
-        getMonitorStatus(token, environment)
-          .then(data => setHosts(data))
-          .catch(err => console.error('Failed to refresh hosts:', err));
+        fetchHosts();
       }, 2000);
     } catch (err) {
       setSnackbar({
@@ -593,9 +606,19 @@ const MonitorPage = ({ environment }) => {
   return (
     <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h4">
-          {envTitle} Monitoring
-        </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+          <Typography variant="h4">
+            {envTitle} Monitoring
+          </Typography>
+          {refreshing && (
+            <CircularProgress size={16} sx={{ ml: 2 }} />
+          )}
+          {lastUpdated && (
+            <Typography variant="caption" color="text.secondary" sx={{ ml: 2 }}>
+              Last updated: {lastUpdated.toLocaleTimeString()}
+            </Typography>
+          )}
+        </Box>
         
         <Box sx={{ display: 'flex', gap: 1 }}>
           <Button

@@ -27,11 +27,29 @@ def get_status_file(environment):
     return os.path.join(get_environment_path(environment), 'status.json')
 
 def load_status(environment):
-    """Load status from file storage"""
+    """Load status from file storage with enhanced error handling"""
     status_file = get_status_file(environment)
     if os.path.exists(status_file):
-        with open(status_file, 'r') as f:
-            return json.load(f)
+        try:
+            with open(status_file, 'r') as f:
+                return json.load(f)
+        except json.JSONDecodeError as e:
+            # Handle corrupted JSON file
+            logger.error(f"Error loading status file for {environment}: {str(e)}")
+            # Create backup of corrupted file
+            backup_file = status_file + ".corrupted"
+            try:
+                import shutil
+                shutil.copy2(status_file, backup_file)
+                logger.info(f"Created backup of corrupted file at {backup_file}")
+                # Create empty status file
+                with open(status_file, 'w') as f:
+                    json.dump({}, f)
+                logger.info(f"Created new empty status file for {environment}")
+                return {}
+            except Exception as e2:
+                logger.error(f"Error handling corrupted status file: {str(e2)}")
+                return {}
     return {}
 
 def save_status(status, environment):
@@ -251,30 +269,56 @@ def monitor_host(environment, host, username, password):
 @monitor_bp.route('/<environment>/status', methods=['GET'])
 @token_required
 def get_monitor_status(current_user, environment):
-    """Get monitoring status for the specified environment"""
-    if environment not in ['production', 'non_production']:
-        return jsonify({'message': 'Invalid environment'}), 400
+    """Get monitoring status for the specified environment with ETag support"""
+    try:
+        if environment not in ['production', 'non_production']:
+            return jsonify({'message': 'Invalid environment'}), 400
 
-    hosts = load_hosts(environment)
-    status = load_status(environment)
+        # Generate ETag based on the last modification time of status file
+        status_file = get_status_file(environment)
+        etag = None
+        if os.path.exists(status_file):
+            etag = f"W/\"{os.path.getmtime(status_file)}\""
+            
+            # Check if client sent If-None-Match header
+            if_none_match = request.headers.get('If-None-Match')
+            if if_none_match and if_none_match == etag:
+                # Return 304 Not Modified if ETags match
+                return '', 304
 
-    # Combine hosts with their status
-    result = []
-    for host in hosts:
-        host_id = host['id']
-        host_status = status.get(host_id, {
-            'instance_status': 'unknown',
-            'datasources': [],
-            'deployments': [],
-            'last_check': None
-        })
+        hosts = load_hosts(environment)
+        status = load_status(environment)
 
-        result.append({
-            **host,
-            'status': host_status
-        })
+        # Combine hosts with their status
+        result = []
+        for host in hosts:
+            host_id = host['id']
+            host_status = status.get(host_id, {
+                'instance_status': 'unknown',
+                'datasources': [],
+                'deployments': [],
+                'last_check': None
+            })
 
-    return jsonify(result), 200
+            result.append({
+                **host,
+                'status': host_status
+            })
+
+        # Create response
+        response = jsonify(result)
+        
+        # Add ETag header
+        if etag:
+            response.headers['ETag'] = etag
+            response.headers['Cache-Control'] = 'private, must-revalidate'
+            
+        return response, 200
+    except Exception as e:
+        logger.error(f"Error in get_monitor_status: {str(e)}")
+        import traceback
+        logger.error(traceback.format_exc())
+        return jsonify({'message': 'Internal server error', 'error': str(e)}), 500
 
 @monitor_bp.route('/<environment>/check/<host_id>', methods=['POST'])
 @token_required
