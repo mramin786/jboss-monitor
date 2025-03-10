@@ -45,7 +45,3 @@ class Config:
     LOG_MAX_DAYS = int(os.environ.get('LOG_MAX_DAYS') or 3)  # Maximum age of log files in days
     LOG_ROTATION = os.environ.get('LOG_ROTATION') or 'midnight'  # When to rotate logs
     DEBUG = os.environ.get('DEBUG', 'False').lower() in ('true', '1', 't')  # Enable debug mode
-    
-    # Reports settings
-    MAX_REPORTS_PER_ENV = int(os.environ.get('MAX_REPORTS_PER_ENV') or 10)  # Maximum number of reports to keep per environment
-    REPORTS_CLEANUP_ENABLED = os.environ.get('REPORTS_CLEANUP_ENABLED', 'True').lower() in ('true', '1', 't')  # Enable reports cleanup

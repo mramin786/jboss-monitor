@@ -14,14 +14,14 @@ export const getReports = async () => {
   }
 };
 
-export const generateReport = async (token, environment, username, password) => {
+export const generateReport = async (token, environment, username, password, format = 'pdf') => {
   try {
-    console.log(`Generating PDF report for ${environment}`);
+    console.log(`Generating ${format} report for ${environment}`);
     // Remove trailing slash - this is the key fix
     const response = await apiClient.post(`/reports/${environment}/generate`, { 
       username, 
-      password
-      // No format parameter - always PDF now
+      password, 
+      format 
     });
     return response.data;
   } catch (error) {
@@ -66,7 +66,7 @@ export const downloadReport = async (reportId) => {
     
     // Get filename from Content-Disposition header if available
     const contentDisposition = response.headers['content-disposition'];
-    let filename = 'report.pdf'; // Default to PDF extension
+    let filename = 'report';
     
     if (contentDisposition) {
       const filenameMatch = contentDisposition.match(/filename="?(.+)"?/);
@@ -84,19 +84,5 @@ export const downloadReport = async (reportId) => {
   } catch (error) {
     console.error("Error downloading report:", error);
     throw error.response?.data || new Error('Failed to download report');
-  }
-};
-
-// Function to cleanup old reports (admin only)
-export const cleanupReports = async (environment = null, maxReports = 10) => {
-  try {
-    const response = await apiClient.post('/reports/cleanup', {
-      environment,
-      max_reports: maxReports
-    });
-    return response.data;
-  } catch (error) {
-    console.error("Error cleaning up reports:", error);
-    throw error.response?.data || new Error('Failed to clean up reports');
   }
 };

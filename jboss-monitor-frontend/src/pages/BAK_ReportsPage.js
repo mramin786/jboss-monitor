@@ -31,6 +31,7 @@ import {
 } from '@mui/material';
 import {
   PictureAsPdf as PdfIcon,
+  TableChart as TableChartIcon,
   Delete as DeleteIcon,
   Download as DownloadIcon,
   Refresh as RefreshIcon,
@@ -42,11 +43,12 @@ import { useAuth } from '../contexts/AuthContext';
 import { getReports, generateReport, deleteReport, downloadReport } from '../api/reports';
 import ReportsManagement from '../components/reports/ReportsManagement';
 
-// Generate Report Dialog Component - CSV option completely removed
+// Generate Report Dialog Component
 const GenerateReportDialog = ({ open, onClose, onSubmit }) => {
   const [environment, setEnvironment] = useState('production');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [format, setFormat] = useState('pdf');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -56,8 +58,7 @@ const GenerateReportDialog = ({ open, onClose, onSubmit }) => {
     setLoading(true);
     
     try {
-      // Always use PDF format now
-      await onSubmit(environment, username, password);
+      await onSubmit(environment, username, password, format);
       handleReset();
       onClose();
     } catch (err) {
@@ -90,7 +91,7 @@ const GenerateReportDialog = ({ open, onClose, onSubmit }) => {
           )}
           
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            Select the environment and enter your JBoss credentials to generate a detailed PDF status report.
+            Select the environment and enter your JBoss credentials to generate a detailed status report.
           </Typography>
           
           <FormControl fullWidth margin="dense">
@@ -133,6 +134,21 @@ const GenerateReportDialog = ({ open, onClose, onSubmit }) => {
             required
             disabled={loading}
           />
+          
+          <FormControl fullWidth margin="dense">
+            <InputLabel id="format-label">Report Format</InputLabel>
+            <Select
+              labelId="format-label"
+              id="format"
+              value={format}
+              label="Report Format"
+              onChange={(e) => setFormat(e.target.value)}
+              disabled={loading}
+            >
+              <MenuItem value="pdf">PDF Document</MenuItem>
+              <MenuItem value="csv">CSV Spreadsheet</MenuItem>
+            </Select>
+          </FormControl>
         </DialogContent>
         <DialogActions>
           <Button onClick={handleCancel} disabled={loading}>
@@ -142,9 +158,9 @@ const GenerateReportDialog = ({ open, onClose, onSubmit }) => {
             type="submit" 
             variant="contained" 
             disabled={loading}
-            startIcon={loading ? <CircularProgress size={20} /> : <PdfIcon />}
+            startIcon={loading ? <CircularProgress size={20} /> : format === 'pdf' ? <PdfIcon /> : <TableChartIcon />}
           >
-            {loading ? 'Generating...' : 'Generate PDF Report'}
+            {loading ? 'Generating...' : 'Generate Report'}
           </Button>
         </DialogActions>
       </form>
@@ -265,18 +281,17 @@ const ReportsPage = () => {
   };
   
   // Handle generate report
-  const handleGenerateReport = async (environment, username, password) => {
+  const handleGenerateReport = async (environment, username, password, format) => {
     try {
-      console.log(`Generating PDF report for ${environment}`);
-      // Always use 'pdf' format now
-      const result = await generateReport(token, environment, username, password);
+      console.log(`Generating ${format} report for ${environment}`);
+      const result = await generateReport(token, environment, username, password, format);
       
       // Add the new report to the list
       setReports(prev => [result, ...prev]);
       
       setSnackbar({
         open: true,
-        message: 'PDF report generation initiated',
+        message: 'Report generation initiated',
         severity: 'success'
       });
       
@@ -380,6 +395,11 @@ const ReportsPage = () => {
     }
   };
   
+  // Get format icon
+  const getFormatIcon = (format) => {
+    return format === 'pdf' ? <PdfIcon /> : <TableChartIcon />;
+  };
+
   // Render a spinner while loading
   if (loading && !reports.length) {
     return (
@@ -466,9 +486,9 @@ const ReportsPage = () => {
                   </TableCell>
                   <TableCell>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <PdfIcon color="error" />
+                      {getFormatIcon(report.format)}
                       <Typography>
-                        PDF
+                        {report.format.toUpperCase()}
                       </Typography>
                     </Box>
                   </TableCell>
@@ -550,4 +570,4 @@ const ReportsPage = () => {
   );
 };
 
-export default ReportsPage;
+export default ReportsPage; 

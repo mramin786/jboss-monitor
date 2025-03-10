@@ -391,6 +391,7 @@ def debug_reports(current_user):
             'max_reports_per_env': Config.MAX_REPORTS_PER_ENV,
             'reports_cleanup_enabled': Config.REPORTS_CLEANUP_ENABLED
         }
+        
         debug_info = {
             'reports_path': reports_path,
             'directory_exists': dir_exists,

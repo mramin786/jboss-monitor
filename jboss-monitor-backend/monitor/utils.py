@@ -73,14 +73,18 @@ def save_status(status, environment):
         logger.error(traceback.format_exc())
 
 def get_jboss_credentials(environment):
-    """Get JBoss credentials for the specified environment"""
+    """Get JBoss credentials for the specified environment with debugging"""
     # Try environment variables first
     if environment == 'production':
-        return Config.PROD_JBOSS_USERNAME, Config.PROD_JBOSS_PASSWORD
+        username = Config.PROD_JBOSS_USERNAME
+        password = Config.PROD_JBOSS_PASSWORD
+        print(f"Production credentials from env: Username='{username}', Password exists={password is not None}")
     elif environment == 'non_production':
-        return Config.NONPROD_JBOSS_USERNAME, Config.NONPROD_JBOSS_PASSWORD
-
-    return None, None
+        username = Config.NONPROD_JBOSS_USERNAME
+        password = Config.NONPROD_JBOSS_PASSWORD
+        print(f"Non-Production credentials from env: Username='{username}', Password exists={password is not None}")
+    
+    return username, password
 
 def parse_datasources(ds_data):
     """

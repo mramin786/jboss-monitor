@@ -6,9 +6,7 @@ from threading import Thread
 import time
 import logging
 from datetime import datetime
-from dotenv import load_dotenv
-# Load environment variables from .env file
-load_dotenv()
+
 # Basic logging setup - before other imports
 logging.basicConfig(
     level=logging.INFO,
@@ -43,14 +41,6 @@ try:
 except ImportError as e:
     logger.warning(f"Could not import log cleanup: {str(e)}")
     use_log_cleanup = False
-
-# Try to import reports cleanup
-try:
-    from reports.cleanup import start_reports_cleanup_worker
-    use_reports_cleanup = True
-except ImportError as e:
-    logger.warning(f"Could not import reports cleanup: {str(e)}")
-    use_reports_cleanup = False
 
 # Log application startup
 logger.info("Starting JBoss Monitor application")
@@ -132,9 +122,7 @@ def diagnostics():
         'log_dir': log_dir,
         'system_info': system_info,
         'advanced_logging': use_advanced_logging,
-        'log_cleanup': use_log_cleanup,
-        'reports_cleanup': use_reports_cleanup,
-        'max_reports_per_env': Config.MAX_REPORTS_PER_ENV
+        'log_cleanup': use_log_cleanup
     })
 
 if __name__ == '__main__':
@@ -150,16 +138,6 @@ if __name__ == '__main__':
             cleanup_thread.start()
         except Exception as e:
             logger.error(f"Error starting log cleanup worker: {str(e)}")
-    
-    # Start reports cleanup thread if available
-    if use_reports_cleanup and Config.REPORTS_CLEANUP_ENABLED:
-        try:
-            logger.info("Starting reports cleanup worker")
-            reports_cleanup_thread = Thread(target=start_reports_cleanup_worker)
-            reports_cleanup_thread.daemon = True
-            reports_cleanup_thread.start()
-        except Exception as e:
-            logger.error(f"Error starting reports cleanup worker: {str(e)}")
     
     # Start background monitoring thread
     logger.info("Starting monitoring worker")

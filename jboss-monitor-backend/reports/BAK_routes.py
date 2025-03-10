@@ -13,7 +13,6 @@ from config import Config
 from hosts.routes import load_hosts, get_environment_path
 from monitor.routes import load_status, monitor_host
 from reports.generator import generate_pdf_report, generate_csv_report
-from reports.utils import rotate_reports
 
 reports_bp = Blueprint('reports', __name__)
 
@@ -94,8 +93,10 @@ def generate_report(current_user, environment):
     if not username or not password:
         return jsonify({'message': 'JBoss credentials are required'}), 400
 
-    # Report format - Always use PDF now
-    format = 'pdf'
+    # Report format
+    format = data.get('format', 'pdf').lower()
+    if format not in ['pdf', 'csv']:
+        return jsonify({'message': 'Invalid report format'}), 400
 
     # Generate report ID
     report_id = str(uuid.uuid4())
@@ -161,8 +162,12 @@ def generate_report(current_user, environment):
 
             # Generate the report file
             try:
-                report_path = generate_pdf_report(report_id, environment, host_status)
-                print(f"PDF report generated at: {report_path}")
+                if format == 'pdf':
+                    report_path = generate_pdf_report(report_id, environment, host_status)
+                    print(f"PDF report generated at: {report_path}")
+                else:  # CSV
+                    report_path = generate_csv_report(report_id, environment, host_status)
+                    print(f"CSV report generated at: {report_path}")
             except Exception as e:
                 import traceback
                 print(f"Error generating report file: {str(e)}")
@@ -179,13 +184,6 @@ def generate_report(current_user, environment):
 
             save_reports_index(reports)
             print(f"Report {report_id} marked as completed")
-
-            # Add report rotation after a successful report generation
-            try:
-                rotate_reports(environment, max_reports=Config.MAX_REPORTS_PER_ENV)
-                print(f"Report rotation completed for {environment}")
-            except Exception as rotation_error:
-                print(f"Error rotating reports: {str(rotation_error)}")
 
         except Exception as e:
             import traceback
@@ -326,32 +324,6 @@ def delete_report(current_user, report_id):
     except Exception as e:
         return jsonify({'message': f'Error: {str(e)}'}), 500
 
-@reports_bp.route('/cleanup', methods=['POST'])
-@token_required
-def cleanup_reports(current_user):
-    """Manually trigger reports cleanup"""
-    try:
-        # Check if user is admin
-        if current_user.get('role') != 'admin':
-            return jsonify({'message': 'Unauthorized. Admin role required'}), 403
-            
-        # Get max_reports parameter from request
-        data = request.get_json() or {}
-        max_reports = data.get('max_reports', Config.MAX_REPORTS_PER_ENV)
-        environment = data.get('environment')  # Can be None to process all environments
-        
-        # Run cleanup
-        deleted_count = rotate_reports(environment, max_reports)
-        
-        return jsonify({
-            'message': f'Cleanup completed successfully',
-            'deleted_count': deleted_count,
-            'max_reports': max_reports,
-            'environment': environment or 'all'
-        }), 200
-    except Exception as e:
-        return jsonify({'message': f'Error: {str(e)}'}), 500
-
 @reports_bp.route('/debug', methods=['GET'])
 @token_required
 def debug_reports(current_user):
@@ -386,11 +358,6 @@ def debug_reports(current_user):
                         'modified': datetime.fromtimestamp(os.path.getmtime(file_path)).isoformat()
                     })
         
-        # Get config info
-        config_info = {
-            'max_reports_per_env': Config.MAX_REPORTS_PER_ENV,
-            'reports_cleanup_enabled': Config.REPORTS_CLEANUP_ENABLED
-        }
         debug_info = {
             'reports_path': reports_path,
             'directory_exists': dir_exists,
@@ -398,8 +365,7 @@ def debug_reports(current_user):
             'index_file': index_file,
             'index_exists': index_exists,
             'index_content': index_content,
-            'report_files': report_files,
-            'config': config_info
+            'report_files': report_files
         }
         
         response = jsonify(debug_info)

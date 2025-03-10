@@ -11,66 +11,34 @@
       }
     ],
     "deployments": [],
-    "last_check": "2025-03-09T17:05:35.349771",
+    "last_check": "2025-03-10T15:40:07.944517",
     "status_changed": true,
-    "datasources_changed_at": "2025-03-09T17:05:31.422796"
+    "datasources_changed_at": "2025-03-10T15:40:03.947805"
   },
   "e27b681a-de64-4ea5-b44f-3e88d57903c4": {
-    "instance_status": "up",
-    "datasources": [
-      {
-        "name": "ExampleDS",
-        "type": "data-source",
-        "status": "up",
-        "jndi-name": "java:jboss/datasources/ExampleDS",
-        "driver": "h2"
-      }
-    ],
-    "deployments": [
-      {
-        "name": "hello-jboss.war",
-        "type": "war",
-        "status": "up"
-      }
-    ],
-    "last_check": "2025-03-09T17:05:35.293826",
-    "status_changed": true,
-    "datasources_changed_at": "2025-03-09T17:05:31.375935",
-    "deployments_changed_at": "2025-03-09T17:05:35.293812"
+    "instance_status": "down",
+    "datasources": [],
+    "deployments": [],
+    "last_check": "2025-03-10T15:39:52.759051",
+    "status_changed": false
   },
   "5f8eab7a-480d-4df0-860c-96d51ed001e1": {
-    "instance_status": "up",
-    "datasources": [
-      {
-        "name": "ExampleDS",
-        "type": "data-source",
-        "status": "up",
-        "jndi-name": "java:jboss/datasources/ExampleDS",
-        "driver": "h2"
-      }
-    ],
-    "deployments": [
-      {
-        "name": "hello-jboss.war",
-        "type": "war",
-        "status": "up"
-      }
-    ],
-    "last_check": "2025-03-09T17:05:35.215777",
-    "status_changed": true,
-    "datasources_changed_at": "2025-03-09T17:05:31.193346",
-    "deployments_changed_at": "2025-03-09T17:05:35.215764"
+    "instance_status": "down",
+    "datasources": [],
+    "deployments": [],
+    "last_check": "2025-03-10T15:39:52.762272",
+    "status_changed": false
   },
-  "_last_check": "2025-03-09T16:58:16.714067",
-  "_status_changed_at": "2025-03-09T16:58:16.714082",
-  "_last_updated": "2025-03-09T17:05:35.357073",
+  "_last_check": "2025-03-10T15:40:07.945863",
+  "_status_changed_at": "2025-03-10T15:40:07.945876",
+  "_last_updated": "2025-03-10T15:40:07.951335",
   "15b3cba2-a276-4b75-9338-2211394f8fb2": {
     "instance_status": "down",
     "datasources": [],
     "deployments": [],
-    "last_check": "2025-03-09T17:05:18.387227",
+    "last_check": "2025-03-10T15:39:52.762877",
     "status_changed": false
   },
   "_single_host_updated": "25ef39d1-5d72-4f45-93e3-81da77f84e21",
-  "_single_host_updated_at": "2025-03-09T17:05:35.354271"
+  "_single_host_updated_at": "2025-03-10T13:44:36.879985"
 }
