@@ -86,7 +86,73 @@ export const downloadReport = async (reportId) => {
     throw error.response?.data || new Error('Failed to download report');
   }
 };
+export const compareReports = async (token, report1Id, report2Id) => {
+  try {
+    console.log(`Comparing reports ${report1Id} and ${report2Id}`);
+    const response = await apiClient.post('/reports/compare', { 
+      report1_id: report1Id, 
+      report2_id: report2Id
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error comparing reports:", error);
+    throw error.response?.data || new Error('Failed to compare reports');
+  }
+};
 
+export const getComparisons = async () => {
+  try {
+    const response = await apiClient.get('/reports/comparisons');
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching comparisons:", error);
+    throw error.response?.data || new Error('Failed to fetch comparison reports');
+  }
+};
+
+export const getComparisonDownloadUrl = (comparisonId) => {
+  // Add cache buster to download URL
+  const timestamp = new Date().getTime();
+  return `${API_URL}/reports/comparison/${comparisonId}/download?t=${timestamp}`;
+};
+
+export const downloadComparison = async (comparisonId) => {
+  try {
+    console.log(`Downloading comparison report: ${comparisonId}`);
+    const response = await apiClient.get(`/reports/comparison/${comparisonId}/download`, {
+      responseType: 'blob' // Important for handling file downloads
+    });
+    
+    // Create a blob URL and trigger download
+    const blob = new Blob([response.data], { 
+      type: response.headers['content-type'] 
+    });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    
+    // Get filename from Content-Disposition header if available
+    const contentDisposition = response.headers['content-disposition'];
+    let filename = 'comparison.pdf';
+    
+    if (contentDisposition) {
+      const filenameMatch = contentDisposition.match(/filename="?(.+)"?/);
+      if (filenameMatch && filenameMatch[1]) {
+        filename = filenameMatch[1];
+      }
+    }
+    
+    link.setAttribute('download', filename);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    
+    return true;
+  } catch (error) {
+    console.error("Error downloading comparison report:", error);
+    throw error.response?.data || new Error('Failed to download comparison report');
+  }
+};
 // Function to cleanup old reports (admin only)
 export const cleanupReports = async (environment = null, maxReports = 10) => {
   try {

@@ -2,12 +2,13 @@
 from flask import Blueprint, request, jsonify, send_file
 import os
 import json
+import logging
 import uuid
 import threading
 from datetime import datetime
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
-
+from reports.comparison import compare_reports, generate_comparison_pdf
 from auth.routes import token_required
 from config import Config
 from hosts.routes import load_hosts, get_environment_path
@@ -16,7 +17,157 @@ from reports.generator import generate_pdf_report, generate_csv_report
 from reports.utils import rotate_reports
 
 reports_bp = Blueprint('reports', __name__)
+# Configure logging
+logger = logging.getLogger(__name__)
+@reports_bp.route('/compare', methods=['POST'])
+@token_required
+def compare_reports_endpoint(current_user):
+    """Compare two reports and return the differences"""
+    try:
+        data = request.get_json()
+        
+        if not data or not data.get('report1_id') or not data.get('report2_id'):
+            return jsonify({'message': 'Missing required report IDs'}), 400
+        
+        report1_id = data.get('report1_id')
+        report2_id = data.get('report2_id')
+        
+        # Compare the reports
+        comparison_result = compare_reports(report1_id, report2_id)
+        
+        if 'error' in comparison_result:
+            return jsonify({'message': comparison_result['error']}), 400
+        
+        # Generate a unique ID for this comparison
+        comparison_id = str(uuid.uuid4())
+        
+        # Get comparison summary to return to the client
+        comparison_summary = {
+            'id': comparison_id,
+            'report1_id': report1_id,
+            'report2_id': report2_id,
+            'created_at': datetime.now().isoformat(),
+            'created_by': current_user['username'],
+            'summary': comparison_result['summary']
+        }
+        
+        # Generate a PDF report of the comparison asynchronously in a thread
+        def generate_pdf_thread():
+            try:
+                # Generate the PDF
+                generate_comparison_pdf(comparison_id, comparison_result)
+                
+                # Load the reports index
+                reports_index_file = os.path.join(Config.REPORTS_PATH, 'reports_index.json')
+                reports = load_reports_index()
+                
+                # Add the comparison report to the index
+                report_entry = {
+                    'id': comparison_id,
+                    'type': 'comparison',
+                    'report1_id': report1_id,
+                    'report2_id': report2_id,
+                    'environment': comparison_result['report1']['environment'],
+                    'format': 'pdf',
+                    'created_by': current_user['username'],
+                    'created_at': datetime.now().isoformat(),
+                    'status': 'completed',
+                    'filename': f"{comparison_id}.pdf",
+                    'completed_at': datetime.now().isoformat()
+                }
+                
+                reports.append(report_entry)
+                save_reports_index(reports)
+                
+                logger.info(f"Comparison report {comparison_id} generated successfully")
+            except Exception as e:
+                logger.error(f"Error generating comparison report: {str(e)}")
+                import traceback
+                logger.error(traceback.format_exc())
+        
+        # Start the thread
+        thread = threading.Thread(target=generate_pdf_thread)
+        thread.daemon = True
+        thread.start()
+        
+        return jsonify(comparison_summary), 201
+        
+    except Exception as e:
+        logger.error(f"Error in compare_reports endpoint: {str(e)}")
+        import traceback
+        logger.error(traceback.format_exc())
+        return jsonify({'message': f'Error: {str(e)}'}), 500
 
+@reports_bp.route('/comparisons', methods=['GET'])
+@token_required
+def get_comparisons(current_user):
+    """Get all comparison reports"""
+    try:
+        reports = load_reports_index()
+        
+        # Filter out only comparison reports
+        comparisons = [r for r in reports if r.get('type') == 'comparison']
+        
+        # Sort by creation date (newest first)
+        comparisons.sort(key=lambda x: x.get('created_at', ''), reverse=True)
+        
+        # Create response with cache control headers
+        response = jsonify(comparisons)
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        response.headers['Pragma'] = 'no-cache'
+        response.headers['Expires'] = '0'
+        return response, 200
+    except Exception as e:
+        logger.error(f"Error in get_comparisons: {str(e)}")
+        import traceback
+        logger.error(traceback.format_exc())
+        # Return empty array instead of error to prevent UI error
+        response = jsonify([])
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        return response, 200
+
+@reports_bp.route('/comparison/<comparison_id>/download', methods=['GET'])
+@token_required
+def download_comparison(current_user, comparison_id):
+    """Download a comparison report"""
+    try:
+        reports = load_reports_index()
+        
+        # Find the comparison by ID
+        comparison = next((r for r in reports if r['id'] == comparison_id), None)
+        
+        if not comparison:
+            return jsonify({'message': 'Comparison report not found'}), 404
+            
+        if comparison.get('status') != 'completed':
+            return jsonify({'message': 'Comparison report is not ready for download'}), 400
+            
+        # Get the report file path
+        report_file = os.path.join(Config.REPORTS_PATH, f"{comparison_id}.pdf")
+        
+        if not os.path.exists(report_file):
+            return jsonify({'message': 'Comparison report file not found'}), 404
+            
+        # Generate a more descriptive filename
+        env = comparison.get('environment', 'environment')
+        filename = f"jboss_comparison_{env}_{datetime.now().strftime('%Y%m%d')}_{comparison_id[:8]}.pdf"
+        
+        # Return with cache control headers
+        response = send_file(
+            report_file,
+            mimetype='application/pdf',
+            as_attachment=True,
+            download_name=filename
+        )
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        response.headers['Pragma'] = 'no-cache'
+        response.headers['Expires'] = '0'
+        return response
+    except Exception as e:
+        logger.error(f"Error downloading comparison report: {str(e)}")
+        import traceback
+        logger.error(traceback.format_exc())
+        return jsonify({'message': f'Error: {str(e)}'}), 500
 def get_report_file(report_id, format):
     """Get the report file path"""
     filename = f"{report_id}.{format}"

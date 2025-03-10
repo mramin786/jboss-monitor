@@ -27,7 +27,10 @@ import {
   FormControl,
   InputLabel,
   Select,
-  MenuItem
+  MenuItem,
+  Divider,
+  Tab,
+  Tabs
 } from '@mui/material';
 import {
   PictureAsPdf as PdfIcon,
@@ -35,12 +38,15 @@ import {
   Download as DownloadIcon,
   Refresh as RefreshIcon,
   Storage as StorageIcon,
-  Add as AddIcon
+  Add as AddIcon,
+  CompareArrows as CompareArrowsIcon
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { getReports, generateReport, deleteReport, downloadReport } from '../api/reports';
 import ReportsManagement from '../components/reports/ReportsManagement';
+import CompareReportsDialog from '../components/reports/CompareReportsDialog';
+import ComparisonReportsList from '../components/reports/ComparisonReportsList';
 
 // Generate Report Dialog Component - CSV option completely removed
 const GenerateReportDialog = ({ open, onClose, onSubmit }) => {
@@ -206,6 +212,10 @@ const ReportsPage = () => {
     severity: 'success'
   });
   
+  // Add new state variables for comparison
+  const [compareDialogOpen, setCompareDialogOpen] = useState(false);
+  const [tabValue, setTabValue] = useState(0); // 0 = Regular reports, 1 = Comparison reports
+  
   const { token, currentUser } = useAuth();
   const navigate = useNavigate();
   
@@ -355,6 +365,25 @@ const ReportsPage = () => {
     }
   };
   
+  // Handle tab change
+  const handleTabChange = (event, newValue) => {
+    setTabValue(newValue);
+  };
+  
+  // Handle successful comparison
+  const handleComparisonSuccess = (result) => {
+    setSnackbar({
+      open: true,
+      message: 'Comparison initiated. The report will be available shortly.',
+      severity: 'success'
+    });
+    
+    // Refresh reports after a short delay
+    setTimeout(() => {
+      fetchReports();
+    }, 2000);
+  };
+  
   // Close snackbar
   const handleCloseSnackbar = () => {
     setSnackbar(prev => ({ ...prev, open: false }));
@@ -405,6 +434,13 @@ const ReportsPage = () => {
             Refresh
           </Button>
           <Button
+            variant="outlined"
+            startIcon={<CompareArrowsIcon />}
+            onClick={() => setCompareDialogOpen(true)}
+          >
+            Compare Reports
+          </Button>
+          <Button
             variant="contained"
             startIcon={<AddIcon />}
             onClick={() => setGenerateDialogOpen(true)}
@@ -420,97 +456,123 @@ const ReportsPage = () => {
         </Alert>
       )}
       
-      {reports.length === 0 && !loading ? (
-        <Card>
-          <CardContent sx={{ textAlign: 'center', py: 5 }}>
-            <Typography variant="h6" color="text.secondary" gutterBottom>
-              No Reports Yet
-            </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              Generate your first JBoss status report by clicking the button below.
-            </Typography>
-            <Button 
-              variant="outlined" 
-              startIcon={<AddIcon />}
-              onClick={() => setGenerateDialogOpen(true)}
-            >
-              Generate Report
-            </Button>
-          </CardContent>
-        </Card>
-      ) : (
-        <TableContainer component={Paper}>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>Environment</TableCell>
-                <TableCell>Format</TableCell>
-                <TableCell>Created At</TableCell>
-                <TableCell>Status</TableCell>
-                <TableCell align="right">Actions</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {reports.map((report) => (
-                <TableRow key={report.id}>
-                  <TableCell>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <StorageIcon 
-                        color={report.environment === 'production' ? 'error' : 'info'} 
-                        fontSize="small" 
-                      />
-                      <Typography>
-                        {report.environment === 'production' ? 'Production' : 'Non-Production'}
-                      </Typography>
-                    </Box>
-                  </TableCell>
-                  <TableCell>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <PdfIcon color="error" />
-                      <Typography>
-                        PDF
-                      </Typography>
-                    </Box>
-                  </TableCell>
-                  <TableCell>
-                    {formatDate(report.created_at)}
-                  </TableCell>
-                  <TableCell>
-                    <Chip 
-                      label={report.status.toUpperCase()} 
-                      color={getStatusColor(report.status)}
-                      size="small"
-                      icon={report.status === 'generating' ? <CircularProgress size={16} color="inherit" /> : undefined}
-                    />
-                  </TableCell>
-                  <TableCell align="right">
-                    <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
-                      <Tooltip title="Download Report">
-                        <span>
-                          <IconButton 
-                            color="primary"
-                            onClick={() => handleDownloadReport(report)}
-                            disabled={report.status !== 'completed'}
-                          >
-                            <DownloadIcon />
-                          </IconButton>
-                        </span>
-                      </Tooltip>
-                     <Tooltip title="Delete Report">
-                        <IconButton 
-                          color="error"
-                          onClick={() => openDeleteDialog(report)}
-                        >
-                          <DeleteIcon />
-                        </IconButton>
-                      </Tooltip>
-                    </Box>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
+      {/* Tabs for regular reports and comparison reports */}
+      <Paper sx={{ mb: 3 }}>
+        <Tabs
+          value={tabValue}
+          onChange={handleTabChange}
+          indicatorColor="primary"
+          textColor="primary"
+          variant="fullWidth"
+        >
+          <Tab label="Status Reports" />
+          <Tab label="Comparison Reports" />
+        </Tabs>
+      </Paper>
+      
+      {/* Regular reports tab */}
+      {tabValue === 0 && (
+        <>
+          {reports.length === 0 && !loading ? (
+            <Card>
+              <CardContent sx={{ textAlign: 'center', py: 5 }}>
+                <Typography variant="h6" color="text.secondary" gutterBottom>
+                  No Reports Yet
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                  Generate your first JBoss status report by clicking the button below.
+                </Typography>
+                <Button 
+                  variant="outlined" 
+                  startIcon={<AddIcon />}
+                  onClick={() => setGenerateDialogOpen(true)}
+                >
+                  Generate Report
+                </Button>
+              </CardContent>
+            </Card>
+          ) : (
+            <TableContainer component={Paper}>
+              <Table>
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Environment</TableCell>
+                    <TableCell>Format</TableCell>
+                    <TableCell>Created At</TableCell>
+                    <TableCell>Status</TableCell>
+                    <TableCell align="right">Actions</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {reports
+                    .filter(report => !report.type || report.type !== 'comparison')
+                    .map((report) => (
+                    <TableRow key={report.id}>
+                      <TableCell>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <StorageIcon 
+                            color={report.environment === 'production' ? 'error' : 'info'} 
+                            fontSize="small" 
+                          />
+                          <Typography>
+                            {report.environment === 'production' ? 'Production' : 'Non-Production'}
+                          </Typography>
+                        </Box>
+                      </TableCell>
+                      <TableCell>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <PdfIcon color="error" />
+                          <Typography>
+                            PDF
+                          </Typography>
+                        </Box>
+                      </TableCell>
+                      <TableCell>
+                        {formatDate(report.created_at)}
+                      </TableCell>
+                      <TableCell>
+                        <Chip 
+                          label={report.status.toUpperCase()} 
+                          color={getStatusColor(report.status)}
+                          size="small"
+                          icon={report.status === 'generating' ? <CircularProgress size={16} color="inherit" /> : undefined}
+                        />
+                      </TableCell>
+                      <TableCell align="right">
+                        <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
+                          <Tooltip title="Download Report">
+                            <span>
+                              <IconButton 
+                                color="primary"
+                                onClick={() => handleDownloadReport(report)}
+                                disabled={report.status !== 'completed'}
+                              >
+                                <DownloadIcon />
+                              </IconButton>
+                            </span>
+                          </Tooltip>
+                         <Tooltip title="Delete Report">
+                            <IconButton 
+                              color="error"
+                              onClick={() => openDeleteDialog(report)}
+                            >
+                              <DeleteIcon />
+                            </IconButton>
+                          </Tooltip>
+                        </Box>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          )}
+        </>
+      )}
+      
+      {/* Comparison reports tab */}
+      {tabValue === 1 && (
+        <ComparisonReportsList onDelete={openDeleteDialog} />
       )}
       
       {/* Add the Reports Management component for admin users */}
@@ -528,6 +590,12 @@ const ReportsPage = () => {
         onClose={() => setDeleteDialogOpen(false)}
         onConfirm={handleDeleteReport}
         report={selectedReport}
+      />
+      
+      <CompareReportsDialog
+        open={compareDialogOpen}
+        onClose={() => setCompareDialogOpen(false)}
+        onCompare={handleComparisonSuccess}
       />
       
       {/* Snackbar notifications */}

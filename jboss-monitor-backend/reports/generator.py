@@ -1,6 +1,7 @@
 # reports/generator.py
 import os
 import csv
+import logging
 from datetime import datetime
 from reportlab.lib.pagesizes import letter
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
@@ -8,6 +9,8 @@ from reportlab.lib import colors
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.enums import TA_CENTER
 from config import Config
+# Configure logging
+logger = logging.getLogger(__name__)
 
 def generate_pdf_report(report_id, environment, host_status):
     """
@@ -19,7 +22,21 @@ def generate_pdf_report(report_id, environment, host_status):
     """
     # Use absolute path
     report_path = os.path.join(Config.REPORTS_PATH, f"{report_id}.pdf")
+    data_path = os.path.join(Config.REPORTS_PATH, f"{report_id}.json")
+    # Store the raw data in JSON format for easy comparison
+    try:
+        with open(data_path, 'w') as f:
+            json.dump(host_status, f, indent=2)
+        logger.info(f"Saved report data to {data_path} for future comparisons")
+    except Exception as e:
+        logger.error(f"Error saving report data: {str(e)}") 
+    # Create reports directory if it doesn't exist
+    os.makedirs(os.path.dirname(report_path), exist_ok=True)
     
+    print(f"Generating PDF report at: {report_path}")
+    
+    # Create PDF document
+    doc = SimpleDocTemplate(report_path, pagesize=letter)
     # Create reports directory if it doesn't exist
     os.makedirs(os.path.dirname(report_path), exist_ok=True)
     
