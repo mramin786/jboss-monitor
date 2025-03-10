@@ -1,17 +1,19 @@
 # monitor/routes.py
 from flask import Blueprint, request, jsonify
 import os
-import json
-from datetime import datetime
-import time
 import threading
-import traceback
+import time
 import logging
+from datetime import datetime
 
 from auth.routes import token_required
 from config import Config
-from hosts.routes import load_hosts, get_environment_path
-from monitor.cli_executor import JBossCliExecutor
+from hosts.routes import load_hosts
+from monitor.utils import (
+    get_status_file, load_status, save_status, 
+    get_jboss_credentials, parse_datasources, parse_deployments
+)
+from monitor.tasks import monitor_host_worker
 
 # Configure logging
 logging.basicConfig(
@@ -22,254 +24,38 @@ logger = logging.getLogger(__name__)
 
 monitor_bp = Blueprint('monitor', __name__)
 
-def get_status_file(environment):
-    """Get the status file path for the specified environment"""
-    return os.path.join(get_environment_path(environment), 'status.json')
-
-def load_status(environment):
-    """Load status from file storage with enhanced error handling"""
-    status_file = get_status_file(environment)
-    if os.path.exists(status_file):
-        try:
-            with open(status_file, 'r') as f:
-                return json.load(f)
-        except json.JSONDecodeError as e:
-            # Handle corrupted JSON file
-            logger.error(f"Error loading status file for {environment}: {str(e)}")
-            # Create backup of corrupted file
-            backup_file = status_file + ".corrupted"
-            try:
-                import shutil
-                shutil.copy2(status_file, backup_file)
-                logger.info(f"Created backup of corrupted file at {backup_file}")
-                # Create empty status file
-                with open(status_file, 'w') as f:
-                    json.dump({}, f)
-                logger.info(f"Created new empty status file for {environment}")
-                return {}
-            except Exception as e2:
-                logger.error(f"Error handling corrupted status file: {str(e2)}")
-                return {}
-    return {}
-
-def save_status(status, environment):
-    """Save status to file storage"""
-    status_file = get_status_file(environment)
-    os.makedirs(os.path.dirname(status_file), exist_ok=True)
-    with open(status_file, 'w') as f:
-        json.dump(status, f, indent=2)
-
-def get_jboss_credentials(environment):
-    """Get JBoss credentials for the specified environment"""
-    # Try environment variables first
-    if environment == 'production':
-        return Config.PROD_JBOSS_USERNAME, Config.PROD_JBOSS_PASSWORD
-    elif environment == 'non_production':
-        return Config.NONPROD_JBOSS_USERNAME, Config.NONPROD_JBOSS_PASSWORD
-
-    return None, None
-
-def parse_datasources(ds_data):
-    """
-    Parse datasources from JBoss CLI response
-    Handles different JBoss versions and response formats
-    
-    Returns a list of datasource dictionaries with name, type and status
-    """
-    datasources = []
-    logger.info(f"Parsing datasources from data: {type(ds_data)}")
-    
-    # If not a dictionary, we can't parse it
-    if not isinstance(ds_data, dict):
-        logger.warning(f"Datasource data is not a dictionary: {type(ds_data)}")
-        return datasources
-    
-    try:
-        # Format 1: {'data-source': {'name1': {...}, 'name2': {...}}, 'xa-data-source': {...}}
-        # Common in newer JBoss versions
-        if 'data-source' in ds_data and isinstance(ds_data['data-source'], dict):
-            for ds_name, ds_details in ds_data['data-source'].items():
-                logger.info(f"Processing datasource: {ds_name}")
-                enabled = ds_details.get('enabled', False)
-                datasources.append({
-                    'name': ds_name,
-                    'type': 'data-source',
-                    'status': 'up' if enabled else 'down'
-                })
-        
-        # Format 2: {'data-source': ['name1', 'name2'], 'xa-data-source': ['name3']}
-        # Common in some older JBoss versions
-        elif 'data-source' in ds_data and isinstance(ds_data['data-source'], list):
-            for ds_name in ds_data['data-source']:
-                logger.info(f"Processing datasource (list format): {ds_name}")
-                datasources.append({
-                    'name': ds_name,
-                    'type': 'data-source',
-                    'status': 'up'  # Assume up since we can't determine from list format
-                })
-        
-        # Handle XA datasources with dictionary format
-        if 'xa-data-source' in ds_data and isinstance(ds_data['xa-data-source'], dict):
-            for ds_name, ds_details in ds_data['xa-data-source'].items():
-                logger.info(f"Processing XA datasource: {ds_name}")
-                enabled = ds_details.get('enabled', False)
-                datasources.append({
-                    'name': ds_name,
-                    'type': 'xa-data-source',
-                    'status': 'up' if enabled else 'down'
-                })
-        
-        # Handle XA datasources with list format
-        elif 'xa-data-source' in ds_data and isinstance(ds_data['xa-data-source'], list):
-            for ds_name in ds_data['xa-data-source']:
-                logger.info(f"Processing XA datasource (list format): {ds_name}")
-                datasources.append({
-                    'name': ds_name,
-                    'type': 'xa-data-source',
-                    'status': 'up'  # Assume up since we can't determine from list format
-                })
-        
-        return datasources
-    except Exception as e:
-        logger.error(f"Error parsing datasources: {str(e)}")
-        traceback.print_exc()
-        return []
-
-def parse_deployments(deployment_data):
-    """
-    Parse deployments from JBoss CLI response
-    Handles different JBoss versions and response formats
-    
-    Returns a list of deployment dictionaries with name and status
-    """
-    deployments = []
-    logger.info(f"Parsing deployments from data: {type(deployment_data)}")
-    
-    try:
-        # Format 1: Dictionary with deployment names as keys
-        # Common in many JBoss versions
-        if isinstance(deployment_data, dict):
-            for deployment_name, deployment_details in deployment_data.items():
-                if isinstance(deployment_details, dict):
-                    logger.info(f"Processing deployment: {deployment_name}")
-                    enabled = deployment_details.get('enabled', False)
-                    deployments.append({
-                        'name': deployment_name,
-                        'status': 'up' if enabled else 'down'
-                    })
-        
-        # Format 2: List of deployment objects
-        # Sometimes seen in JBoss EAP
-        elif isinstance(deployment_data, list):
-            for deployment in deployment_data:
-                if isinstance(deployment, dict):
-                    # Try to extract from various formats
-                    if 'address' in deployment and isinstance(deployment['address'], list) and len(deployment['address']) > 0:
-                        # Extract from address format like [{"deployment": "example.war"}]
-                        for addr_part in deployment['address']:
-                            if isinstance(addr_part, dict) and 'deployment' in addr_part:
-                                deployment_name = addr_part['deployment']
-                                enabled = True
-                                if 'result' in deployment and isinstance(deployment['result'], dict):
-                                    enabled = deployment['result'].get('enabled', True)
-                                
-                                logger.info(f"Processing deployment from address: {deployment_name}")
-                                deployments.append({
-                                    'name': deployment_name,
-                                    'status': 'up' if enabled else 'down'
-                                })
-                    elif 'name' in deployment:
-                        # Direct name attribute format
-                        deployment_name = deployment['name']
-                        enabled = deployment.get('enabled', True)
-                        
-                        logger.info(f"Processing deployment with name attr: {deployment_name}")
-                        deployments.append({
-                            'name': deployment_name,
-                            'status': 'up' if enabled else 'down'
-                        })
-        
-        return deployments
-    except Exception as e:
-        logger.error(f"Error parsing deployments: {str(e)}")
-        traceback.print_exc()
-        return []
-
 def monitor_host(environment, host, username, password):
     """Monitor a single host and update its status"""
     host_id = host['id']
     logger.info(f"Starting monitoring for host: {host['host']}:{host['port']}")
     
+    # Get host status
+    host_status = monitor_host_worker(host, username, password)
+    
+    # Load current status
     status = load_status(environment)
     
-    # Initialize status for this host if not exists
-    if host_id not in status:
-        status[host_id] = {
-            'instance_status': 'unknown',
-            'datasources': [],
-            'deployments': [],
-            'last_check': None
-        }
+    # Check if status changed
+    previous_status = status.get(host_id, {})
     
-    # Create CLI executor
-    cli = JBossCliExecutor(
-        host=host['host'],
-        port=host['port'],
-        username=username,
-        password=password
-    )
+    # Update status with this host's status
+    status[host_id] = host_status
     
-    # Check server status
-    server_result = cli.check_server_status()
-    logger.info(f"Server status result: {server_result}")
-    
-    if not server_result['success']:
-        logger.warning(f"Server check failed for {host['host']}:{host['port']}")
-        status[host_id]['instance_status'] = 'down'
-        status[host_id]['last_check'] = datetime.now().isoformat()
-        save_status(status, environment)
-        return
-    
-    # Server is up, update status
-    status[host_id]['instance_status'] = 'up'
-    
-    # Get datasources
-    datasources_result = cli.get_datasources()
-    logger.info(f"Datasource check result success: {datasources_result['success']}")
-    
-    if datasources_result['success'] and 'result' in datasources_result:
-        logger.info(f"Raw datasource result: {json.dumps(datasources_result['result'])[:500]}...")
-        datasources = parse_datasources(datasources_result['result'])
-        logger.info(f"Parsed {len(datasources)} datasources")
-        status[host_id]['datasources'] = datasources
-    else:
-        logger.warning(f"Failed to get datasources: {datasources_result.get('error', 'Unknown error')}")
-        status[host_id]['datasources'] = []
-    
-    # Get deployments
-    deployments_result = cli.get_deployments()
-    logger.info(f"Deployment check result success: {deployments_result['success']}")
-    
-    if deployments_result['success'] and 'result' in deployments_result:
-        logger.info(f"Raw deployment result: {json.dumps(deployments_result['result'])[:500]}...")
-        deployments = parse_deployments(deployments_result['result'])
-        logger.info(f"Parsed {len(deployments)} deployments")
-        status[host_id]['deployments'] = deployments
-    else:
-        logger.warning(f"Failed to get deployments: {deployments_result.get('error', 'Unknown error')}")
-        status[host_id]['deployments'] = []
-    
-    # Update last check timestamp
-    status[host_id]['last_check'] = datetime.now().isoformat()
+    # Add metadata for this update
+    status['_single_host_updated'] = host_id
+    status['_single_host_updated_at'] = datetime.now().isoformat()
     
     # Save updated status
     save_status(status, environment)
+    
     logger.info(f"Completed monitoring for host: {host['host']}:{host['port']}")
+    
+    return host_status
 
 @monitor_bp.route('/<environment>/status', methods=['GET'])
 @token_required
 def get_monitor_status(current_user, environment):
-    """Get monitoring status for the specified environment with ETag support"""
+    """Get monitoring status for the specified environment with enhanced caching control"""
     try:
         if environment not in ['production', 'non_production']:
             return jsonify({'message': 'Invalid environment'}), 400
@@ -278,7 +64,9 @@ def get_monitor_status(current_user, environment):
         status_file = get_status_file(environment)
         etag = None
         if os.path.exists(status_file):
-            etag = f"W/\"{os.path.getmtime(status_file)}\""
+            # Add timestamp to make ETag more unique
+            file_mtime = os.path.getmtime(status_file)
+            etag = f"W/\"{file_mtime}_{int(time.time())}\""
             
             # Check if client sent If-None-Match header
             if_none_match = request.headers.get('If-None-Match')
@@ -305,13 +93,34 @@ def get_monitor_status(current_user, environment):
                 'status': host_status
             })
 
+        # Add metadata to response
+        metadata = {
+            'last_updated': status.get('_last_updated', datetime.now().isoformat()),
+            'environment': environment,
+            'host_count': len(hosts),
+            'fetch_time': datetime.now().isoformat()
+        }
+
+        # Create response with metadata
+        response_data = {
+            'hosts': result,
+            'metadata': metadata
+        }
+
         # Create response
-        response = jsonify(result)
+        response = jsonify(response_data)
+        
+        # Add aggressive cache control headers
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate, max-age=0'
+        response.headers['Pragma'] = 'no-cache'
+        response.headers['Expires'] = '0'
         
         # Add ETag header
         if etag:
             response.headers['ETag'] = etag
-            response.headers['Cache-Control'] = 'private, must-revalidate'
+            
+        # Add timestamp header to help clients detect changes
+        response.headers['X-Last-Updated'] = metadata['last_updated']
             
         return response, 200
     except Exception as e:
@@ -323,7 +132,7 @@ def get_monitor_status(current_user, environment):
 @monitor_bp.route('/<environment>/check/<host_id>', methods=['POST'])
 @token_required
 def check_host(current_user, environment, host_id):
-    """Manually check status for a specific host"""
+    """Manually check status for a specific host with improved responsiveness"""
     if environment not in ['production', 'non_production']:
         return jsonify({'message': 'Invalid environment'}), 400
 
@@ -345,7 +154,26 @@ def check_host(current_user, environment, host_id):
 
     # Create a thread to run the check in background
     def run_check():
-        monitor_host(environment, host, username, password)
+        try:
+            logger.info(f"Running manual check for host {host['host']}:{host['port']}")
+            host_status = monitor_host_worker(host, username, password)
+            
+            # Immediately update the status file for faster feedback
+            status = load_status(environment)
+            status[host_id] = host_status
+            
+            # Add metadata to indicate a manual update occurred
+            status['_manual_check'] = True
+            status['_manual_check_host'] = host_id
+            status['_manual_check_time'] = datetime.now().isoformat()
+            
+            # Save updated status
+            save_status(status, environment)
+            logger.info(f"Manual check completed for host {host['host']}:{host['port']}")
+        except Exception as e:
+            logger.error(f"Error in manual check thread: {str(e)}")
+            import traceback
+            logger.error(traceback.format_exc())
 
     check_thread = threading.Thread(target=run_check)
     check_thread.daemon = True
@@ -353,13 +181,14 @@ def check_host(current_user, environment, host_id):
 
     return jsonify({
         'message': 'Check initiated',
-        'host': host
+        'host': host,
+        'request_time': datetime.now().isoformat()
     }), 200
 
 @monitor_bp.route('/<environment>/check-all', methods=['POST'])
 @token_required
 def check_all_hosts(current_user, environment):
-    """Manually check status for all hosts"""
+    """Manually check status for all hosts with improved parallelism and responsiveness"""
     if environment not in ['production', 'non_production']:
         return jsonify({'message': 'Invalid environment'}), 400
 
@@ -377,10 +206,106 @@ def check_all_hosts(current_user, environment):
             'host_count': 0
         }), 200
 
-    # Create a thread to run all checks in background
+    # Start a thread to run all checks in background to avoid blocking the API
     def run_checks():
-        for host in hosts:
-            monitor_host(environment, host, username, password)
+        from concurrent.futures import ThreadPoolExecutor, as_completed
+        logger.info(f"Starting parallel checks for all hosts in {environment}")
+        start_time = time.time()
+        
+        # Load current status
+        current_status = load_status(environment)
+        host_statuses = {}
+        status_changed = False
+        
+        # Calculate effective max workers based on config
+        max_workers = Config.MAX_WORKERS
+        if hasattr(Config, 'MAX_CONCURRENT_HOSTS') and Config.MAX_CONCURRENT_HOSTS > 0:
+            max_workers = min(max_workers, Config.MAX_CONCURRENT_HOSTS)
+        
+        # Use ThreadPoolExecutor for parallel processing
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            # Submit all host checks in parallel
+            future_to_host = {
+                executor.submit(monitor_host_worker, host, username, password): host['id']
+                for host in hosts
+            }
+            
+            # Process results as they complete
+            for future in as_completed(future_to_host):
+                host_id = future_to_host[future]
+                try:
+                    host_status = future.result()
+                    if host_status:
+                        if host_status.get('status_changed', False):
+                            status_changed = True
+                        host_statuses[host_id] = host_status
+                except Exception as e:
+                    logger.error(f"Error checking host {host_id}: {str(e)}")
+                    import traceback
+                    logger.error(traceback.format_exc())
+                    
+                    # Add error status
+                    host_statuses[host_id] = {
+                        'instance_status': 'error',
+                        'datasources': [],
+                        'deployments': [],
+                        'last_check': datetime.now().isoformat(),
+                        'error': str(e),
+                        'status_changed': True
+                    }
+                    status_changed = True
+                
+                # Update status file incrementally as each host completes
+                # This provides faster feedback while the full check runs
+                if len(host_statuses) % 3 == 0 or len(host_statuses) == len(hosts):
+                    # Every 3 hosts or when all hosts are done, update the status file
+                    try:
+                        updated_status = load_status(environment)  # Get fresh copy to avoid overwriting
+                        
+                        # Add all processed host statuses
+                        for h_id, h_status in host_statuses.items():
+                            updated_status[h_id] = h_status
+                        
+                        # Add metadata for manual check
+                        updated_status['_manual_check'] = True
+                        updated_status['_manual_check_all'] = True
+                        updated_status['_manual_check_time'] = datetime.now().isoformat()
+                        updated_status['_manual_check_progress'] = f"{len(host_statuses)}/{len(hosts)}"
+                        
+                        if status_changed:
+                            updated_status['_status_changed_at'] = datetime.now().isoformat()
+                        
+                        # Save the current progress
+                        save_status(updated_status, environment)
+                        logger.info(f"Updated status file with {len(host_statuses)}/{len(hosts)} hosts processed")
+                    except Exception as e:
+                        logger.error(f"Error updating status file during incremental update: {str(e)}")
+        
+        # Final update after all hosts are processed
+        try:
+            updated_status = load_status(environment)  # Get fresh copy
+            
+            # Add all host statuses
+            for host_id, host_status in host_statuses.items():
+                updated_status[host_id] = host_status
+            
+            # Add metadata for manual check
+            updated_status['_manual_check'] = True
+            updated_status['_manual_check_all'] = True
+            updated_status['_manual_check_time'] = datetime.now().isoformat()
+            updated_status['_manual_check_completed'] = datetime.now().isoformat()
+            updated_status['_manual_check_duration'] = f"{time.time() - start_time:.2f}s"
+            
+            if status_changed:
+                updated_status['_status_changed_at'] = datetime.now().isoformat()
+            
+            # Save the final status
+            save_status(updated_status, environment)
+        except Exception as e:
+            logger.error(f"Error updating status file after completing all checks: {str(e)}")
+        
+        elapsed = time.time() - start_time
+        logger.info(f"Completed all host checks in {elapsed:.2f} seconds. Processed {len(host_statuses)} hosts.")
 
     check_thread = threading.Thread(target=run_checks)
     check_thread.daemon = True
@@ -388,7 +313,8 @@ def check_all_hosts(current_user, environment):
 
     return jsonify({
         'message': 'Check initiated for all hosts',
-        'host_count': len(hosts)
+        'host_count': len(hosts),
+        'request_time': datetime.now().isoformat()
     }), 200
 
 @monitor_bp.route('/<environment>/debug', methods=['GET'])
@@ -399,7 +325,6 @@ def debug_environment(current_user, environment):
         return jsonify({'message': 'Invalid environment'}), 400
     
     # Get environment details
-    env_path = get_environment_path(environment)
     hosts = load_hosts(environment)
     status = load_status(environment)
     
@@ -408,6 +333,8 @@ def debug_environment(current_user, environment):
     has_credentials = bool(username and password)
     
     # Get file permissions and directory structure
+    from hosts.routes import get_environment_path
+    env_path = get_environment_path(environment)
     env_stats = {
         'path': env_path,
         'exists': os.path.exists(env_path),
@@ -422,17 +349,59 @@ def debug_environment(current_user, environment):
         'path': status_file,
         'exists': os.path.exists(status_file),
         'size': os.path.getsize(status_file) if os.path.exists(status_file) else 0,
-        'last_modified': datetime.fromtimestamp(os.path.getmtime(status_file)).isoformat() if os.path.exists(status_file) else None
+        'last_modified': datetime.fromtimestamp(os.path.getmtime(status_file)).isoformat() if os.path.exists(status_file) else None,
+        'metadata': {k: v for k, v in status.items() if k.startswith('_')}
     }
     
-    return jsonify({
+    # Get thread pool stats
+    thread_stats = {
+        'max_workers': Config.MAX_WORKERS,
+        'thread_timeout': Config.CLI_TIMEOUT,  # Using CLI_TIMEOUT as THREAD_TIMEOUT might not exist
+        'active_threads': threading.active_count(),
+        'current_thread': threading.current_thread().name
+    }
+    
+    if hasattr(Config, 'MAX_CONCURRENT_HOSTS'):
+        thread_stats['max_concurrent_hosts'] = Config.MAX_CONCURRENT_HOSTS
+    
+    # Get host status summary
+    host_summary = {
+        'total': len(hosts),
+        'up': sum(1 for h_id, h in status.items() if not h_id.startswith('_') and h.get('instance_status') == 'up'),
+        'down': sum(1 for h_id, h in status.items() if not h_id.startswith('_') and h.get('instance_status') == 'down'),
+        'error': sum(1 for h_id, h in status.items() if not h_id.startswith('_') and h.get('instance_status') == 'error'),
+        'unknown': sum(1 for h_id, h in status.items() if not h_id.startswith('_') and h.get('instance_status') not in ['up', 'down', 'error'])
+    }
+    
+    # Get last check times for all hosts
+    host_check_times = {}
+    for h_id, h in status.items():
+        if not h_id.startswith('_') and 'last_check' in h:
+            host_check_times[h_id] = h['last_check']
+    
+    response = jsonify({
         'environment': environment,
         'host_count': len(hosts),
-        'status_count': len(status),
+        'status_count': len([k for k in status.keys() if not k.startswith('_')]),
         'has_credentials': has_credentials,
         'env_directory': env_stats,
-        'status_file': status_stats
-    }), 200
+        'status_file': status_stats,
+        'thread_stats': thread_stats,
+        'host_summary': host_summary,
+        'host_check_times': host_check_times,
+        'config': {
+            'monitoring_interval': Config.MONITORING_INTERVAL,
+            'cli_timeout': Config.CLI_TIMEOUT,
+        },
+        'server_time': datetime.now().isoformat()
+    })
+    
+    # Add cache control headers
+    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '0'
+    
+    return response, 200
 
 @monitor_bp.route('/<environment>/status/<host_id>', methods=['DELETE'])
 @token_required
@@ -445,11 +414,51 @@ def clear_host_status(current_user, environment, host_id):
     
     if host_id in status:
         del status[host_id]
+        # Add metadata for this operation
+        status['_host_status_cleared'] = host_id
+        status['_host_status_cleared_at'] = datetime.now().isoformat()
+        status['_host_status_cleared_by'] = current_user['username']
+        
         save_status(status, environment)
         return jsonify({
-            'message': 'Host status cleared successfully'
+            'message': 'Host status cleared successfully',
+            'host_id': host_id,
+            'cleared_at': datetime.now().isoformat()
         }), 200
     else:
         return jsonify({
-            'message': 'Host status not found'
+            'message': 'Host status not found',
+            'host_id': host_id
         }), 404
+
+@monitor_bp.route('/<environment>/status/metadata', methods=['GET'])
+@token_required
+def get_status_metadata(current_user, environment):
+    """Get just the status metadata for fast polling"""
+    if environment not in ['production', 'non_production']:
+        return jsonify({'message': 'Invalid environment'}), 400
+    
+    # Load status
+    status = load_status(environment)
+    
+    # Extract metadata (keys starting with _)
+    metadata = {k: v for k, v in status.items() if k.startswith('_')}
+    
+    # Add server timestamp
+    metadata['server_time'] = datetime.now().isoformat()
+    
+    # Add some stats
+    metadata['host_count'] = len([k for k in status.keys() if not k.startswith('_')])
+    metadata['up_count'] = sum(1 for h_id, h in status.items() 
+                              if not h_id.startswith('_') and h.get('instance_status') == 'up')
+    metadata['down_count'] = sum(1 for h_id, h in status.items() 
+                                if not h_id.startswith('_') and h.get('instance_status') == 'down')
+    
+    response = jsonify(metadata)
+    
+    # Add cache control headers
+    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '0'
+    
+    return response, 200

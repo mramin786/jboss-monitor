@@ -51,6 +51,11 @@ import StatusBadge from '../components/common/StatusBadge';
 import { getMonitorStatus, checkAllHosts, checkHost } from '../api/monitor';
 import { generateReport } from '../api/reports';
 
+// Utility function to ensure we're working with an array of hosts
+const getHostsArray = (hostsData) => {
+  return Array.isArray(hostsData) ? hostsData : (hostsData?.hosts || []);
+};
+
 // Generate Report Dialog Component
 const GenerateReportDialog = ({ open, onClose, onSubmit, environment }) => {
   const [username, setUsername] = useState('');
@@ -432,7 +437,7 @@ const MonitorPage = ({ environment }) => {
   const [refreshing, setRefreshing] = useState(false);
   const [lastUpdated, setLastUpdated] = useState(null);
   
-  // Add a new stats state instead of calculating it on render
+  // Add a new stats state to avoid calculating on every render
   const [stats, setStats] = useState({
     hosts: { total: 0, up: 0, down: 0, unknown: 0, upPercentage: 0 },
     datasources: { total: 0, up: 0, upPercentage: 0 },
@@ -446,9 +451,10 @@ const MonitorPage = ({ environment }) => {
   
   // Move the getStats function to a pure calculation function
   const calculateStats = (hostsData) => {
-    const total = hostsData.length;
-    const up = hostsData.filter(h => h.status?.instance_status === 'up').length;
-    const down = hostsData.filter(h => h.status?.instance_status === 'down').length;
+    const hostsArray = getHostsArray(hostsData);
+    const total = hostsArray.length;
+    const up = hostsArray.filter(h => h.status?.instance_status === 'up').length;
+    const down = hostsArray.filter(h => h.status?.instance_status === 'down').length;
     const unknown = total - up - down;
     
     const upPercentage = total > 0 ? (up / total) * 100 : 0;
@@ -459,7 +465,7 @@ const MonitorPage = ({ environment }) => {
     let totalDeployments = 0;
     let upDeployments = 0;
     
-    hostsData.forEach(host => {
+    hostsArray.forEach(host => {
       const datasources = host.status?.datasources || [];
       totalDatasources += datasources.length;
       upDatasources += datasources.filter(ds => ds.status === 'up').length;
@@ -488,22 +494,26 @@ const MonitorPage = ({ environment }) => {
   const fetchHosts = async () => {
     setRefreshing(true);
     try {
-      const hostsData = await getMonitorStatus(token, environment);
-      setHosts(hostsData);
+      console.log('Fetching host data for environment:', environment);
+      const response = await getMonitorStatus(token, environment);
+      console.log('API response:', response); // Debug log
+      
+      setHosts(response);
       
       // Force stats recalculation after host update
-      setStats(calculateStats(hostsData));
+      setStats(calculateStats(response));
       
       setError(null);
       setLastUpdated(new Date());
     } catch (err) {
       console.error("Error fetching host data:", err);
       // Only show error if we don't have data already
-      if (hosts.length === 0) {
+      if (getHostsArray(hosts).length === 0) {
         setError(err.message || `Failed to load ${envTitle} hosts`);
       }
     } finally {
       setRefreshing(false);
+      setLoading(false);
     }
   };
   
@@ -512,10 +522,10 @@ const MonitorPage = ({ environment }) => {
     // Initial fetch
     fetchHosts();
     
-    // Set up refresh interval (every 3 seconds for live-like updates)
+    // Set up refresh interval (every 10 seconds for more responsive updates)
     const intervalId = setInterval(() => {
       fetchHosts();
-    }, 3000);
+    }, 10000);
     
     // Clean up interval on unmount
     return () => clearInterval(intervalId);
@@ -595,7 +605,7 @@ const MonitorPage = ({ environment }) => {
   };
 
   // Render a spinner while loading
-  if (loading && !hosts.length) {
+  if (loading && getHostsArray(hosts).length === 0) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', my: 5 }}>
         <CircularProgress />
@@ -779,7 +789,7 @@ const MonitorPage = ({ environment }) => {
       </Grid>
       
       {/* Host Status Cards */}
-      {hosts.length === 0 ? (
+      {getHostsArray(hosts).length === 0 ? (
         <Box sx={{ textAlign: 'center', py: 4 }}>
           <Typography variant="h6" color="text.secondary">
             No hosts found
@@ -794,7 +804,7 @@ const MonitorPage = ({ environment }) => {
         </Box>
       ) : (
         <Grid container spacing={3}>
-          {hosts.map((host) => (
+          {getHostsArray(hosts).map((host) => (
             <Grid item xs={12} md={6} lg={4} key={host.id}>
               <HostStatusCard host={host} onRefresh={handleRefreshHost} />
             </Grid>

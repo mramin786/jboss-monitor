@@ -7,19 +7,38 @@ import logging
 import time
 import shlex
 import traceback
+import threading
+from concurrent.futures import ThreadPoolExecutor
+from config import Config
+
+# Thread-local storage for CLI command caching
+thread_local = threading.local()
 
 class JBossCliExecutor:
-    def __init__(self, host, port, username, password, timeout=30):
+    # Class-level connection pool
+    _executor_pool = ThreadPoolExecutor(
+        max_workers=Config.CLI_CONNECTION_POOL_SIZE,
+        thread_name_prefix="cli-executor-"
+    )
+    
+    # Command result cache
+    _cache = {}
+    _cache_lock = threading.RLock()
+    
+    def __init__(self, host, port, username, password, timeout=None):
         self.host = host
         self.port = port
         self.username = username
         self.password = password
-        self.timeout = timeout
+        self.timeout = timeout or Config.CLI_TIMEOUT
         self.logger = logging.getLogger(__name__)
         
         # Use the specific path for jboss-cli.sh
         self.jboss_cli_path = '/app/jboss/bin/jboss-cli.sh'
-
+        
+        # Create a unique identifier for this connection for caching
+        self.connection_id = f"{host}:{port}:{username}"
+    
     def _mask_sensitive_data(self, command_list):
         """
         Create a copy of the command list with sensitive data masked
@@ -31,12 +50,31 @@ class JBossCliExecutor:
                 masked_command[i] = '--password=****'
         return masked_command
 
-    def execute_command(self, command):
-        """Execute a JBoss CLI command and return the result"""
+    def execute_command(self, command, use_cache=True, cache_ttl=60):
+        """Execute a JBoss CLI command and return the result with caching support"""
+        # Generate a cache key for this command
+        cache_key = f"{self.connection_id}:{command}"
+        
+        # Check cache for non-modifying commands
+        if use_cache and command.startswith(":read-") or command.startswith("/subsystem="):
+            with self._cache_lock:
+                cache_entry = self._cache.get(cache_key)
+                if cache_entry:
+                    cache_time, cache_result = cache_entry
+                    # Check if cache is still valid
+                    if time.time() - cache_time < cache_ttl:
+                        self.logger.debug(f"Using cached result for: {command}")
+                        return cache_result
+        
         try:
             # Check if we should use a simulated response for testing/development
             if os.environ.get('JBOSS_SIMULATION_MODE') == 'true':
-                return self._get_simulated_response(command)
+                result = self._get_simulated_response(command)
+                # Cache the result for read-only commands
+                if use_cache and (command.startswith(":read-") or command.startswith("/subsystem=")):
+                    with self._cache_lock:
+                        self._cache[cache_key] = (time.time(), result)
+                return result
 
             # Verify jboss-cli.sh exists
             if not os.path.exists(self.jboss_cli_path):
@@ -44,7 +82,11 @@ class JBossCliExecutor:
                 # For development/testing when jboss-cli.sh might not be available
                 if os.environ.get('JBOSS_FALLBACK_SIMULATION') == 'true':
                     self.logger.warning("Using fallback simulation mode due to missing CLI executable")
-                    return self._get_simulated_response(command)
+                    result = self._get_simulated_response(command)
+                    if use_cache and (command.startswith(":read-") or command.startswith("/subsystem=")):
+                        with self._cache_lock:
+                            self._cache[cache_key] = (time.time(), result)
+                    return result
                 return {
                     "success": False,
                     "error": f"JBoss CLI not found at {self.jboss_cli_path}"
@@ -52,7 +94,7 @@ class JBossCliExecutor:
 
             # Build the CLI command with exact syntax
             cli_command = [
-                self.jboss_cli_path,  # Fixed from self.jboss_cli.path to self.jboss_cli_path
+                self.jboss_cli_path,
                 "--connect",
                 f"--controller={self.host}:{self.port}",
                 f"--user={self.username}",
@@ -65,7 +107,8 @@ class JBossCliExecutor:
             masked_cli_command = self._mask_sensitive_data(cli_command)
             self.logger.info(f"Executing CLI command: {' '.join(masked_cli_command)}")
             
-            # Execute the command
+            # Execute the command with timeout
+            start_time = time.time()
             process = subprocess.run(
                 cli_command,
                 capture_output=True,
@@ -74,6 +117,8 @@ class JBossCliExecutor:
                 # Protect against shell injection
                 shell=False
             )
+            execution_time = time.time() - start_time
+            self.logger.debug(f"CLI command executed in {execution_time:.2f}s")
             
             # Check for errors
             if process.returncode != 0:
@@ -95,12 +140,12 @@ class JBossCliExecutor:
                     result = json.loads(output)
                     # Check for JBoss CLI specific outcome
                     if result.get('outcome') == 'success':
-                        return {
+                        result = {
                             "success": True,
                             "result": result.get('result')
                         }
                     else:
-                        return {
+                        result = {
                             "success": False,
                             "error": result
                         }
@@ -108,27 +153,43 @@ class JBossCliExecutor:
                     # If not JSON but contains "outcome" => "success", try to parse it
                     if ' => "success"' in output or " => 'success'" in output:
                         self.logger.info("Output appears to be in DMR format, treating as success")
-                        return {
+                        result = {
                             "success": True,
                             "result": self._parse_dmr_output(output)
                         }
-                    return {
-                        "success": True,
-                        "result": output
-                    }
+                    else:
+                        result = {
+                            "success": True,
+                            "result": output
+                        }
+                
+                # Cache the result for read-only commands
+                if use_cache and (command.startswith(":read-") or command.startswith("/subsystem=")):
+                    with self._cache_lock:
+                        self._cache[cache_key] = (time.time(), result)
+                
+                return result
             except json.JSONDecodeError:
                 self.logger.warning(f"Failed to parse JSON from output: {output}")
                 # Try to parse non-JSON CLI output
                 if ' => "success"' in output or " => 'success'" in output:
                     self.logger.info("Output appears to be in DMR format, treating as success")
-                    return {
+                    result = {
                         "success": True,
                         "result": self._parse_dmr_output(output)
                     }
-                return {
-                    "success": True,
-                    "result": output
-                }
+                else:
+                    result = {
+                        "success": True,
+                        "result": output
+                    }
+                
+                # Cache the result for read-only commands
+                if use_cache and (command.startswith(":read-") or command.startswith("/subsystem=")):
+                    with self._cache_lock:
+                        self._cache[cache_key] = (time.time(), result)
+                
+                return result
         
         except subprocess.TimeoutExpired:
             self.logger.error(f"Command timed out after {self.timeout} seconds")
@@ -159,37 +220,37 @@ class JBossCliExecutor:
             # Basic parsing for deployment data
             if "deployment" in output and "enabled" in output:
                 result = {}
-                # Look for deployment names and enabled status
-                deployments = []
                 
                 # Extract data between {}
                 import re
                 blocks = re.findall(r'{(.*?)}', output, re.DOTALL)
                 
+                # Extract and parse deployments - supporting all deployment types
+                deployments = {}
                 for block in blocks:
-                    deployment = {}
-                    
                     # Look for name
                     name_match = re.search(r'"?name"?\s+=>\s+"([^"]+)"', block)
                     if name_match:
-                        deployment['name'] = name_match.group(1)
-                    
-                    # Look for enabled status
-                    enabled_match = re.search(r'"?enabled"?\s+=>\s+(true|false)', block)
-                    if enabled_match:
-                        deployment['enabled'] = enabled_match.group(1) == 'true'
-                    
-                    if deployment:
-                        deployments.append(deployment)
+                        deployment_name = name_match.group(1)
+                        
+                        # Look for enabled status
+                        enabled_match = re.search(r'"?enabled"?\s+=>\s+(true|false)', block)
+                        enabled = enabled_match and enabled_match.group(1) == 'true'
+                        
+                        # Add to deployments dict
+                        deployments[deployment_name] = {
+                            'enabled': enabled
+                        }
                 
+                # Set result
                 if deployments:
-                    result['deployments'] = deployments
+                    result = deployments
                     
                 return result
             
             # For datasources
             if "datasource" in output or "data-source" in output:
-                result = {"data-source": {}}
+                result = {"data-source": {}, "xa-data-source": {}}
                 
                 # Try to extract datasource names and properties
                 import re
@@ -197,11 +258,23 @@ class JBossCliExecutor:
                 
                 for ds_name, block in ds_blocks:
                     if "jndi-name" in block:  # This is likely a datasource
+                        # Determine datasource type
+                        ds_type = "xa-data-source" if "xa-datasource-class" in block else "data-source"
+                        
                         # Extract enabled status
                         enabled_match = re.search(r'"?enabled"?\s+=>\s+(true|false)', block)
                         enabled = enabled_match and enabled_match.group(1) == 'true'
                         
-                        result["data-source"][ds_name] = {"enabled": enabled}
+                        # Extract connection URL if present
+                        conn_url_match = re.search(r'"?connection-url"?\s+=>\s+"([^"]+)"', block)
+                        conn_url = conn_url_match.group(1) if conn_url_match else None
+                        
+                        # Add to result
+                        result[ds_type][ds_name] = {
+                            "enabled": enabled
+                        }
+                        if conn_url:
+                            result[ds_type][ds_name]["connection-url"] = conn_url
                 
                 return result
             
@@ -259,6 +332,14 @@ class JBossCliExecutor:
                         "enabled": True,
                         "runtime-name": "test-app.war"
                     },
+                    "api.ear": {
+                        "enabled": True,
+                        "runtime-name": "api.ear"
+                    },
+                    "utility.jar": {
+                        "enabled": True,
+                        "runtime-name": "utility.jar"
+                    },
                     "disabled-app.war": {
                         "enabled": False,
                         "runtime-name": "disabled-app.war"
@@ -289,9 +370,20 @@ class JBossCliExecutor:
         return self.execute_command(f"/subsystem=datasources/data-source={datasource_name}:test-connection-in-pool")
 
     def get_deployments(self):
-        """Get list of deployed applications"""
+        """Get list of deployed applications (supporting all types, not just .war)"""
         return self.execute_command("/deployment=*:read-resource(recursive=true)")
 
     def check_deployment_status(self, deployment_name):
         """Check if a deployment is enabled and running"""
         return self.execute_command(f"/deployment={deployment_name}:read-attribute(name=enabled)")
+
+    @classmethod
+    def clear_cache(cls):
+        """Clear the command cache"""
+        with cls._cache_lock:
+            cls._cache.clear()
+
+    @classmethod
+    def shutdown(cls):
+        """Shutdown the executor pool"""
+        cls._executor_pool.shutdown(wait=True)

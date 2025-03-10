@@ -1,53 +1,76 @@
 {
-  "e27b681a-de64-4ea5-b44f-3e88d57903c4": {
-    "instance_status": "up",
-    "datasources": [
-      {
-        "name": "ExampleDS",
-        "type": "data-source",
-        "status": "up"
-      }
-    ],
-    "deployments": [
-      {
-        "name": "hello-jboss.war",
-        "status": "up"
-      }
-    ],
-    "last_check": "2025-03-09T02:34:49.154753"
-  },
-  "1f39a945-ac55-4566-9fd9-0f6226690954": {
-    "instance_status": "up",
-    "datasources": [
-      {
-        "name": "ExampleDS",
-        "type": "data-source",
-        "status": "up"
-      }
-    ],
-    "deployments": [
-      {
-        "name": "hello-jboss.war",
-        "status": "up"
-      }
-    ],
-    "last_check": "2025-03-09T02:35:47.609405"
-  },
   "25ef39d1-5d72-4f45-93e3-81da77f84e21": {
     "instance_status": "up",
     "datasources": [
       {
         "name": "ExampleDS",
         "type": "data-source",
-        "status": "up"
+        "status": "up",
+        "jndi-name": "java:jboss/datasources/ExampleDS",
+        "driver": "h2"
+      }
+    ],
+    "deployments": [],
+    "last_check": "2025-03-09T17:05:35.349771",
+    "status_changed": true,
+    "datasources_changed_at": "2025-03-09T17:05:31.422796"
+  },
+  "e27b681a-de64-4ea5-b44f-3e88d57903c4": {
+    "instance_status": "up",
+    "datasources": [
+      {
+        "name": "ExampleDS",
+        "type": "data-source",
+        "status": "up",
+        "jndi-name": "java:jboss/datasources/ExampleDS",
+        "driver": "h2"
       }
     ],
     "deployments": [
       {
         "name": "hello-jboss.war",
+        "type": "war",
         "status": "up"
       }
     ],
-    "last_check": "2025-03-09T02:27:56.169257"
-  }
+    "last_check": "2025-03-09T17:05:35.293826",
+    "status_changed": true,
+    "datasources_changed_at": "2025-03-09T17:05:31.375935",
+    "deployments_changed_at": "2025-03-09T17:05:35.293812"
+  },
+  "5f8eab7a-480d-4df0-860c-96d51ed001e1": {
+    "instance_status": "up",
+    "datasources": [
+      {
+        "name": "ExampleDS",
+        "type": "data-source",
+        "status": "up",
+        "jndi-name": "java:jboss/datasources/ExampleDS",
+        "driver": "h2"
+      }
+    ],
+    "deployments": [
+      {
+        "name": "hello-jboss.war",
+        "type": "war",
+        "status": "up"
+      }
+    ],
+    "last_check": "2025-03-09T17:05:35.215777",
+    "status_changed": true,
+    "datasources_changed_at": "2025-03-09T17:05:31.193346",
+    "deployments_changed_at": "2025-03-09T17:05:35.215764"
+  },
+  "_last_check": "2025-03-09T16:58:16.714067",
+  "_status_changed_at": "2025-03-09T16:58:16.714082",
+  "_last_updated": "2025-03-09T17:05:35.357073",
+  "15b3cba2-a276-4b75-9338-2211394f8fb2": {
+    "instance_status": "down",
+    "datasources": [],
+    "deployments": [],
+    "last_check": "2025-03-09T17:05:18.387227",
+    "status_changed": false
+  },
+  "_single_host_updated": "25ef39d1-5d72-4f45-93e3-81da77f84e21",
+  "_single_host_updated_at": "2025-03-09T17:05:35.354271"
 }

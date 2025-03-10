@@ -11,12 +11,41 @@
     "deployments": [
       {
         "name": "hello-jboss.war",
+        "status": "down"
+      }
+    ],
+    "last_check": "2025-03-09T04:33:28.369800"
+  },
+  "1f39a945-ac55-4566-9fd9-0f6226690954": {
+    "instance_status": "up",
+    "datasources": [
+      {
+        "name": "ExampleDS",
+        "type": "data-source",
         "status": "up"
       }
     ],
-    "last_check": "2025-03-08T23:50:18.812224"
+    "deployments": [
+      {
+        "name": "hello-jboss.war",
+        "status": "up"
+      }
+    ],
+    "last_check": "2025-03-09T04:04:03.912957"
   },
-  "1f39a945-ac55-4566-9fd9-0f6226690954": {
+  "25ef39d1-5d72-4f45-93e3-81da77f84e21": {
+    "instance_status": "up",
+    "datasources": [
+      {
+        "name": "ExampleDS",
+        "type": "data-source",
+        "status": "down"
+      }
+    ],
+    "deployments": [],
+    "last_check": "2025-03-09T04:33:28.371457"
+  },
+  "5f8eab7a-480d-4df0-860c-96d51ed001e1": {
     "instance_status": "up",
     "datasources": [
       {
@@ -31,23 +60,6 @@
         "status": "down"
       }
     ],
-    "last_check": "2025-03-08T23:55:20.596140"
-  },
-  "25ef39d1-5d72-4f45-93e3-81da77f84e21": {
-    "instance_status": "up",
-    "datasources": [
-      {
-        "name": "ExampleDS",
-        "type": "data-source",
-        "status": "up"
-      }
-    ],
-    "deployments": [
-      {
-        "name": "hello-jboss.war",
-        "status": "up"
-      }
-    ],
-    "last_check": "2025-03-08T23:54:19.102046"
+    "last_check": "2025-03-09T04:33:28.376248"
   }
 }

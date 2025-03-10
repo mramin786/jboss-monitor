@@ -371,6 +371,11 @@ const DeleteHostDialog = ({ open, host, onClose, onConfirm }) => {
   );
 };
 
+// Utility function to ensure we're working with an array of hosts
+const getHostsArray = (hostsData) => {
+  return Array.isArray(hostsData) ? hostsData : (hostsData?.hosts || []);
+};
+
 // Main Hosts Page Component
 const HostsPage = ({ environment }) => {
   const [hosts, setHosts] = useState([]);
@@ -409,6 +414,7 @@ const HostsPage = ({ environment }) => {
           hostsData = await getHosts(token, environment);
         }
         
+        // Handle both old and new API response formats
         setHosts(hostsData);
       } catch (err) {
         setError(err.message || `Failed to load ${envTitle} hosts`);
@@ -433,7 +439,17 @@ const HostsPage = ({ environment }) => {
   // Handle add host
   const handleAddHost = async (hostData) => {
     const result = await addHost(token, environment, hostData);
-    setHosts(prev => [...prev, result]);
+    
+    // Update hosts list - handling both array and object response formats
+    if (Array.isArray(hosts)) {
+      setHosts(prev => [...prev, result]);
+    } else if (hosts && hosts.hosts) {
+      setHosts({
+        ...hosts,
+        hosts: [...hosts.hosts, result]
+      });
+    }
+    
     setSnackbar({
       open: true,
       message: 'Host added successfully',
@@ -446,7 +462,16 @@ const HostsPage = ({ environment }) => {
     const result = await addHostsBulk(token, environment, hostsData);
     
     if (result.added.length > 0) {
-      setHosts(prev => [...prev, ...result.added]);
+      // Update hosts list - handling both array and object response formats
+      if (Array.isArray(hosts)) {
+        setHosts(prev => [...prev, ...result.added]);
+      } else if (hosts && hosts.hosts) {
+        setHosts({
+          ...hosts,
+          hosts: [...hosts.hosts, ...result.added]
+        });
+      }
+      
       setSnackbar({
         open: true,
         message: `${result.added.length} hosts added successfully`,
@@ -464,7 +489,17 @@ const HostsPage = ({ environment }) => {
     if (!selectedHost) return;
     
     await deleteHost(token, environment, selectedHost.id);
-    setHosts(prev => prev.filter(h => h.id !== selectedHost.id));
+    
+    // Update hosts list - handling both array and object response formats
+    if (Array.isArray(hosts)) {
+      setHosts(prev => prev.filter(h => h.id !== selectedHost.id));
+    } else if (hosts && hosts.hosts) {
+      setHosts({
+        ...hosts,
+        hosts: hosts.hosts.filter(h => h.id !== selectedHost.id)
+      });
+    }
+    
     setSnackbar({
       open: true,
       message: 'Host deleted successfully',
@@ -514,7 +549,7 @@ const HostsPage = ({ environment }) => {
   };
   
   // Render a spinner while loading
-  if (loading && !hosts.length) {
+  if (loading && !getHostsArray(hosts).length) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', my: 5 }}>
         <CircularProgress />
@@ -587,7 +622,7 @@ const HostsPage = ({ environment }) => {
               </TableRow>
             </TableHead>
             <TableBody>
-              {hosts.length === 0 ? (
+              {getHostsArray(hosts).length === 0 ? (
                 <TableRow>
                   <TableCell 
                     colSpan={tabValue === 0 ? 8 : 4} 
@@ -608,7 +643,7 @@ const HostsPage = ({ environment }) => {
                   </TableCell>
                 </TableRow>
               ) : (
-                hosts.map((host) => (
+                getHostsArray(hosts).map((host) => (
                   <TableRow key={host.id}>
                     <TableCell>{host.host}</TableCell>
                     <TableCell>{host.port}</TableCell>

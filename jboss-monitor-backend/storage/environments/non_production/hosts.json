@@ -10,22 +10,32 @@
     "status": "pending"
   },
   {
-    "id": "1f39a945-ac55-4566-9fd9-0f6226690954",
-    "host": "172.20.126.239",
-    "port": 10090,
-    "instance": "standalone1",
-    "added_by": "admin",
-    "added_at": "2025-03-08T22:09:06.810905",
-    "last_check": null,
-    "status": "pending"
-  },
-  {
     "id": "25ef39d1-5d72-4f45-93e3-81da77f84e21",
     "host": "172.20.126.239",
     "port": 10190,
     "instance": "standalone2",
     "added_by": "admin",
     "added_at": "2025-03-08T22:09:06.810973",
+    "last_check": null,
+    "status": "pending"
+  },
+  {
+    "id": "5f8eab7a-480d-4df0-860c-96d51ed001e1",
+    "host": "172.20.126.239",
+    "port": 10090,
+    "instance": "standalone1",
+    "added_by": "admin",
+    "added_at": "2025-03-09T04:05:28.852595",
+    "last_check": null,
+    "status": "pending"
+  },
+  {
+    "id": "15b3cba2-a276-4b75-9338-2211394f8fb2",
+    "host": "172.20.126.239",
+    "port": 10290,
+    "instance": "dododo",
+    "added_by": "admin",
+    "added_at": "2025-03-09T13:16:17.830699",
     "last_check": null,
     "status": "pending"
   }

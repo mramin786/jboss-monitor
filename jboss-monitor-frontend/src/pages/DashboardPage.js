@@ -32,7 +32,8 @@ const EnvironmentStatusCard = ({ environment, hosts, loading, error }) => {
   
   // Compute statistics
   const computeStats = () => {
-    if (!hosts || hosts.length === 0) {
+    const hostsArray = Array.isArray(hosts) ? hosts : (hosts?.hosts || []);
+    if (!hostsArray || hostsArray.length === 0) {
       return {
         total: 0,
         up: 0,
@@ -42,9 +43,9 @@ const EnvironmentStatusCard = ({ environment, hosts, loading, error }) => {
       };
     }
     
-    const total = hosts.length;
-    const up = hosts.filter(h => h.status?.instance_status === 'up').length;
-    const down = hosts.filter(h => h.status?.instance_status === 'down').length;
+    const total = hostsArray.length;
+    const up = hostsArray.filter(h => h.status?.instance_status === 'up').length;
+    const down = hostsArray.filter(h => h.status?.instance_status === 'down').length;
     const unknown = total - up - down;
     const upPercentage = (up / total) * 100;
     

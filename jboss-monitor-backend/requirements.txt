@@ -12,3 +12,7 @@ reportlab==4.0.7
 
 # Utilities
 python-dateutil==2.8.2
+filelock==3.12.2  # Added for thread-safe file operations
+
+# Multithreading and concurrency
+futures==3.1.1  # For Python 2 compatibility if needed
