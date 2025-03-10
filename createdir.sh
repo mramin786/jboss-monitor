@@ -1,76 +1,49 @@
-# Create the main frontend project directory
-mkdir -p jboss-monitor-frontend
+#!/bin/bash
 
-# Create subdirectories
-mkdir -p jboss-monitor-frontend/public
-mkdir -p jboss-monitor-frontend/src
-mkdir -p jboss-monitor-frontend/src/api
-mkdir -p jboss-monitor-frontend/src/components
-mkdir -p jboss-monitor-frontend/src/components/common
-mkdir -p jboss-monitor-frontend/src/components/auth
-mkdir -p jboss-monitor-frontend/src/components/hosts
-mkdir -p jboss-monitor-frontend/src/components/monitor
-mkdir -p jboss-monitor-frontend/src/components/reports
-mkdir -p jboss-monitor-frontend/src/contexts
-mkdir -p jboss-monitor-frontend/src/pages
-mkdir -p jboss-monitor-frontend/src/utils
-mkdir -p jboss-monitor-frontend/src/themes
+BASE_DIR="jboss-monitor-backend"
 
-# Create empty files
-touch jboss-monitor-frontend/public/index.html
-touch jboss-monitor-frontend/public/favicon.ico
-touch jboss-monitor-frontend/public/manifest.json
+# Define directory structure
+DIRS=(
+    "auth" "hosts" "monitor" "reports" "storage"
+    "storage/environments/production" "storage/environments/non_production" "storage/users"
+)
 
-touch jboss-monitor-frontend/src/index.js
-touch jboss-monitor-frontend/src/App.js
-touch jboss-monitor-frontend/src/App.css
+# Define files and their contents
+declare -A FILES
+FILES=(
+    ["app.py"]="# Flask application entry point"
+    ["config.py"]="# Configuration settings"
+    ["requirements.txt"]="# Python dependencies"
+    ["auth/routes.py"]="# Auth API endpoints"
+    ["auth/models.py"]="# User models"
+    ["auth/utils.py"]="# Auth helper functions"
+    ["hosts/routes.py"]="# Host API endpoints"
+    ["hosts/models.py"]="# Host and instance models"
+    ["hosts/utils.py"]="# Host-related utilities"
+    ["monitor/routes.py"]="# Monitoring API endpoints"
+    ["monitor/cli_executor.py"]="# JBoss CLI command executor"
+    ["monitor/datasource.py"]="# Datasource monitoring"
+    ["monitor/deployment.py"]="# WAR file monitoring"
+    ["monitor/tasks.py"]="# Background monitoring tasks"
+    ["reports/routes.py"]="# Report API endpoints"
+    ["reports/generator.py"]="# Report generation logic"
+    ["reports/exporters.py"]="# PDF and CSV exporters"
+    ["storage/data_manager.py"]="# Data persistence logic"
+)
 
-touch jboss-monitor-frontend/src/api/auth.js
-touch jboss-monitor-frontend/src/api/hosts.js
-touch jboss-monitor-frontend/src/api/monitor.js
-touch jboss-monitor-frontend/src/api/reports.js
+# Create directories
+mkdir -p "$BASE_DIR"
+for dir in "${DIRS[@]}"; do
+    mkdir -p "$BASE_DIR/$dir"
+    touch "$BASE_DIR/$dir/__init__.py"
+    echo "# Init file for $dir" > "$BASE_DIR/$dir/__init__.py"
+    echo "Created directory: $BASE_DIR/$dir"
+done
 
-touch jboss-monitor-frontend/src/components/common/Header.js
-touch jboss-monitor-frontend/src/components/common/Sidebar.js
-touch jboss-monitor-frontend/src/components/common/Footer.js
-touch jboss-monitor-frontend/src/components/common/StatusBadge.js
-touch jboss-monitor-frontend/src/components/common/LoadingSpinner.js
+# Create files with content
+for file in "${!FILES[@]}"; do
+    echo -e "${FILES[$file]}" > "$BASE_DIR/$file"
+    echo "Created file: $BASE_DIR/$file"
+done
 
-touch jboss-monitor-frontend/src/components/auth/LoginForm.js
-touch jboss-monitor-frontend/src/components/auth/RegisterForm.js
-
-touch jboss-monitor-frontend/src/components/hosts/HostsTable.js
-touch jboss-monitor-frontend/src/components/hosts/AddHostForm.js
-touch jboss-monitor-frontend/src/components/hosts/BulkImportForm.js
-touch jboss-monitor-frontend/src/components/hosts/HostDetails.js
-
-touch jboss-monitor-frontend/src/components/monitor/DashboardOverview.js
-touch jboss-monitor-frontend/src/components/monitor/StatusCard.js
-touch jboss-monitor-frontend/src/components/monitor/DatasourceStatus.js
-touch jboss-monitor-frontend/src/components/monitor/DeploymentStatus.js
-
-touch jboss-monitor-frontend/src/components/reports/ReportsList.js
-touch jboss-monitor-frontend/src/components/reports/GenerateReportForm.js
-touch jboss-monitor-frontend/src/components/reports/ReportDetails.js
-
-touch jboss-monitor-frontend/src/contexts/AuthContext.js
-touch jboss-monitor-frontend/src/contexts/ThemeContext.js
-
-touch jboss-monitor-frontend/src/pages/LoginPage.js
-touch jboss-monitor-frontend/src/pages/RegisterPage.js
-touch jboss-monitor-frontend/src/pages/DashboardPage.js
-touch jboss-monitor-frontend/src/pages/HostsPage.js
-touch jboss-monitor-frontend/src/pages/MonitorPage.js
-touch jboss-monitor-frontend/src/pages/ReportsPage.js
-
-touch jboss-monitor-frontend/src/utils/auth.js
-touch jboss-monitor-frontend/src/utils/api.js
-touch jboss-monitor-frontend/src/utils/formatters.js
-
-touch jboss-monitor-frontend/src/themes/darkTheme.js
-
-touch jboss-monitor-frontend/package.json
-touch jboss-monitor-frontend/README.md
-
-echo "Frontend project structure created successfully!"
-
+echo "Project structure created successfully in $BASE_DIR/"
