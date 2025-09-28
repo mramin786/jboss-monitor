@@ -1,0 +1,951 @@
+{
+  "name": "My workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "include": "specifiedFields",
+        "fieldsToInclude": "plainText",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        0,
+        880
+      ],
+      "id": "54ca9fcf-c521-4a41-aa92-0aa2155729bc",
+      "name": "Aggregate"
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "include": "specifiedFields",
+        "fieldsToInclude": "plainText",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        0,
+        640
+      ],
+      "id": "2f01376f-94b7-4922-8837-e91ed094ccb6",
+      "name": "Aggregate1"
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "include": "specifiedFields",
+        "fieldsToInclude": "plainText",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "0e2ea2ee-897e-4873-9ad8-2d5e2d8ad857",
+      "name": "Aggregate2"
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "include": "specifiedFields",
+        "fieldsToInclude": "plainText",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        0,
+        432
+      ],
+      "id": "f361577e-6a26-4417-83da-9f2c364b6a37",
+      "name": "Aggregate3"
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "include": "specifiedFields",
+        "fieldsToInclude": "plainText",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        0,
+        208
+      ],
+      "id": "e4f9e6da-a23f-4062-8598-3ed8bcf5804c",
+      "name": "Aggregate4"
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "include": "specifiedFields",
+        "fieldsToInclude": "output",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        1456,
+        448
+      ],
+      "id": "bff285c2-b8be-4f88-a7a7-90e3ff00c631",
+      "name": "Aggregate5"
+    },
+    {
+      "parameters": {
+        "numberInputs": 6
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1120,
+        384
+      ],
+      "id": "473f6a34-2ee3-413b-b612-a1dd8cbe3a9a",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.data }}",
+        "options": {
+          "systemMessage": "=Analyze email content to identify and summarize system alerts with severity classification.\n\n## Task\nExtract system alerts from email content and categorize by severity and impact.\n\n## Severity Levels\n- **Critical**: Outages, security breaches, data loss, payment failures\n- **High**: Performance issues, backup failures, SSL expiry, DB problems  \n- **Medium**: Resource warnings, maintenance notices, config changes\n- **Low**: Updates, completions, routine notifications, optimization tips\n\n## Alert Types\n- **Ongoing**: Active issues requiring attention\n- **Resolved**: Completed incidents for tracking\n- **Scheduled**: Planned maintenance/changes\n- **Informational**: Status updates, no action needed\n\n## Output Format\n```\n## System Alerts Summary\n### [System Name] - [Total: X alerts]\n**Critical** ([count]):\n- [Timestamp]: [Alert] → [Action needed] [Deadline if any]\n\n**High** ([count]):\n- [Timestamp]: [Alert] → [Action needed] [Deadline if any]\n\n**Medium** ([count]):\n- [Timestamp]: [Alert] → [Brief summary]\n\n**Low** ([count]):\n- [Timestamp]: [Alert] → [Brief summary]\n```\n\n## Instructions\n- Group alerts by affected system or service\n- Extract timestamps when available\n- Focus on business impact over technical details\n- Prioritize by severity and urgency\n- If no system alerts found, respond: \"No system alerts detected\""
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        336,
+        0
+      ],
+      "id": "285cb955-e428-42ec-89f9-06c9171f650d",
+      "name": "System Alerts\t AI Agent"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.data }}",
+        "options": {
+          "systemMessage": "=\nAnalyze email content to identify and summarize emails dedicated to specific users.\n\n## Task\nExtract user-specific emails and categorize by recipient, priority, and required actions.\n\n## Categories\n- **Direct**: Emails addressed directly to user\n- **Mentioned**: User referenced in content\n- **Role-based**: Sent to user's department/role\n- **Action**: Requires user response/action\n\n## Priority Levels\n- **Urgent**: C-level/supervisor emails, same-day deadlines, emergencies\n- **High**: 48hr deadlines, key stakeholders, client issues\n- **Normal**: Regular updates, routine tasks, non-urgent meetings\n- **Low**: FYI emails, announcements, flexible deadlines\n\n## Output Format\n```\n## User-Specific Emails Summary\n\n### [User Name] - [Total: X emails]\n**Urgent** ([count]):\n- [Sender]: [Subject] → [Action needed] [Deadline if any]\n\n**High** ([count]):\n- [Sender]: [Subject] → [Action needed] [Deadline if any]\n\n**Normal** ([count]):\n- [Sender]: [Subject] → [Brief summary]\n\n**Low** ([count]):\n- [Sender]: [Subject] → [Brief summary]\n```\n\n## Instructions\n- Identify users by names, roles, direct addressing, or \"your/you\" references\n- Prioritize by sender importance and deadlines\n- Keep summaries to 1 sentence\n- List urgent actions with deadlines first\n- If no user-specific emails found, respond: \"No user-specific emails detected\"\n\n\n\n\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        336,
+        208
+      ],
+      "id": "d66a77c5-38ba-46af-8cd2-759b2519ccc2",
+      "name": "User-Specific\t AI Agent"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.data }}",
+        "options": {
+          "systemMessage": "=\nAnalyze email content to identify and summarize daily calendar events and meeting-related information.\n\n## Task\nExtract calendar events, meeting invites, schedule changes, and time-sensitive appointments from email content.\n\n## Event Types\n- **Meetings**: Team meetings, client calls, 1:1s, conferences\n- **Deadlines**: Project due dates, submission deadlines, milestones\n- **Appointments**: Personal appointments, interviews, reviews\n- **Events**: Company events, training, social gatherings\n\n## Priority Levels\n- **Critical**: Same-day events, client meetings, executive calls\n- **High**: Tomorrow's events, important deadlines, key meetings\n- **Medium**: This week's events, regular team meetings\n- **Low**: Future events, optional attendance, FYI events\n\n## Output Format\n```\n## Daily Calendar Events Summary\n\n### Today ([Date]) - [Total: X events]\n**Critical** ([count]):\n- [Time]: [Event Type] - [Title/Description] | [Location/Platform] | [Attendees if key]\n\n**High** ([count]):\n- [Time]: [Event Type] - [Title/Description] | [Location/Platform]\n\n### Tomorrow ([Date]) - [Total: X events]\n- [Time]: [Event Type] - [Title/Description] | [Location/Platform]\n\n### This Week - [Total: X events]\n- [Date/Time]: [Event Type] - [Title/Description]\n\n### Schedule Changes/Updates\n- [Original] → [New]: [Reason/Details]\n```\n\n## Instructions\n- Extract times, dates, locations, and attendee information\n- Identify meeting platforms (Zoom, Teams, Google Meet)\n- Note schedule changes, cancellations, or rescheduling\n- Flag preparation requirements or pre-meeting materials\n- Prioritize by timing and attendee importance\n- If no calendar events found, respond: \"No calendar events detected\"\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        336,
+        432
+      ],
+      "id": "326069c5-61aa-4614-96a3-99310d35e2df",
+      "name": "Calendar / Schedule AI Agent"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.data }}",
+        "options": {
+          "systemMessage": "=Analyze email content to identify and summarize pending emails, tasks, and actions requiring user attention.\n\n## Task\nExtract all pending actions, follow-ups, approvals, and tasks that need completion or response.\n\n## Action Types\n- **Response Required**: Emails needing replies, confirmations, decisions\n- **Approvals**: Budget approvals, document sign-offs, access requests\n- **Tasks**: Assignments, deliverables, project work\n- **Follow-ups**: Overdue items, status updates, check-ins\n\n## Urgency Levels\n- **Overdue**: Past deadline, multiple reminders\n- **Today**: Due today, same-day response needed\n- **This Week**: Due within 7 days\n- **Future**: Longer-term actions, no immediate deadline\n\n## Output Format\n```\n## Pending Actions Summary\n\n### Overdue ([count])\n- **[Action Type]**: [Description] | **From**: [Sender] | **Due**: [Original deadline]\n\n### Due Today ([count])\n- **[Action Type]**: [Description] | **From**: [Sender] | **Deadline**: [Time if specified]\n\n### Due This Week ([count])\n- **[Action Type]**: [Description] | **From**: [Sender] | **Due**: [Date]\n\n### Future Actions ([count])\n- **[Action Type]**: [Description] | **From**: [Sender] | **Due**: [Date]\n\n### Quick Actions (< 5 min)\n- [Simple tasks that can be completed quickly]\n\n### Waiting For\n- [Items pending responses from others]\n```\n\n## Instructions\n- Identify action verbs: \"please review\", \"need approval\", \"respond by\", \"complete\"\n- Extract deadlines and due dates\n- Flag overdue items with original dates\n- Separate quick wins from complex tasks  \n- Note dependencies on others' responses\n- Track email threads requiring follow-up\n- If no pending actions found, respond: \"No pending actions detected\"\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        336,
+        640
+      ],
+      "id": "bf624252-6b97-42bd-9444-ce191fec840e",
+      "name": "Pending Tasks / Action Required\tAI Agent"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.data }}",
+        "options": {
+          "systemMessage": "=Analyze email content to identify and summarize general communications, announcements, and miscellaneous emails that don't fit other categories.\n\n## Task\nExtract and categorize general emails including company updates, newsletters, informational content, and uncategorized communications.\n\n## Categories\n- **Announcements**: Company news, policy updates, organizational changes\n- **Newsletters**: Industry updates, marketing emails, subscriptions\n- **Informational**: Reports, documentation, reference materials\n- **Administrative**: HR notices, IT updates, facility information\n- **External**: Vendor communications, partner updates, third-party notices\n- **Uncategorized**: Emails that don't fit other specific categories\n\n## Importance Levels\n- **Important**: Leadership communications, policy changes, compliance notices\n- **Relevant**: Department updates, industry news, useful information\n- **Informational**: General announcements, newsletters, reference materials\n- **Low Priority**: Marketing emails, optional events, general notices\n\n## Output Format\n```\n## General & Other Emails Summary\n\n### Important ([count])\n- **[Category]**: [Subject] | **From**: [Sender] | **Summary**: [Key points]\n\n### Relevant ([count])  \n- **[Category]**: [Subject] | **From**: [Sender] | **Summary**: [Brief description]\n\n### Informational ([count])\n- **[Category]**: [Subject] | **From**: [Sender] | **Type**: [Content type]\n\n### Low Priority ([count])\n- **[Category]**: [Subject] | **From**: [Sender]\n\n### Key Updates\n- [Important announcements or changes that affect operations]\n\n### Industry/Market News\n- [Relevant external updates or market information]\n\n### Reference Materials\n- [Documentation, guides, or resources for future reference]\n```\n\n## Instructions\n- Identify company-wide communications and leadership messages\n- Separate internal announcements from external communications\n- Flag policy changes, compliance notices, and important updates\n- Group similar newsletter/subscription emails together\n- Note useful reference materials and documentation\n- Exclude emails already categorized as alerts, user-specific, calendar, or actions\n- If no general emails found, respond: \"No general emails detected\"\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        336,
+        880
+      ],
+      "id": "1daef41e-4194-4fd7-8baf-fa0fe3cbca27",
+      "name": "Other / General AI Agent"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.data }} ",
+        "options": {
+          "systemMessage": "=You are an expert email summary consolidator. Your task is to combine outputs from 6 specialized email analysis agents and create a unified, prioritized summary for executive decision-making.\n\n## Input Sources\nYou will receive analysis from these 6 agents:\n1. **System Alerts Agent** - Technical issues and system health\n2. **User-Specific Emails Agent** - Individual user communications\n3. **Calendar Events Agent** - Meetings and time-sensitive events  \n4. **Pending Actions Agent** - Tasks and follow-ups requiring action\n5. **General & Other Agent** - Company updates and miscellaneous content\n6. **Outlook Calendar Agent** - Specific event details, accept/decline statuses, and updates from Outlook\n\n## Task\nCreate a comprehensive executive summary that prioritizes information by business impact and urgency. Consolidate information from both the Calendar Events Agent and the Outlook Calendar Agent into a single, de-duplicated schedule.\n\n## Critical Output Requirements\n\nToday’s date - {{ $now }}\n\n**YOU MUST ALWAYS RETURN YOUR RESPONSE IN THE EXACT JSON FORMAT SHOWN BELOW. DO NOT PROVIDE ANY OTHER TEXT OR EXPLANATION OUTSIDE OF THIS JSON STRUCTURE.**\n\n```json\n{\n  \"output\": {\n    \"subject\": \"<short, clear subject line for the email>\",\n    \"html\": \"<full HTML summary>\",\n    \"text\": \"<full plain text summary>\"\n  }\n}\n```\n\n### Subject Rules\n- Keep it under 80 characters  \n- Summarize the most urgent and important point from the report  \n- Include date (YYYY-MM-DD)  \n- Example: `\"Critical Security Alerts & Key Updates — 2025-08-13\"`\n\n### HTML Summary Structure\nGenerate HTML format with the following EXACT structure:\n\n```html\n<!DOCTYPE html>\n<html>\n<head>\n    <title>Executive Email Summary</title>\n</head>\n<body>\n\n<h1>Executive Email Summary - [CURRENT_DATE]</h1>\n<p><b>Total Emails Processed: [COUNT]</b></p>\n\n<hr>\n\n<h2>CRITICAL - Immediate Attention Required (Next 4 Hours)</h2>\n[Include only if critical items exist, otherwise show: <p>No critical priority items detected.</p>]\n\n<h3>System Security Alerts</h3>\n<ul>\n    <li><b>[Account/System Name]</b></li>\n    <li>[Alert Description]</li>\n</ul>\n\n<h3>Urgent Actions Required</h3>\n<ol>\n    <li>[Action Item] - <b>Owner:</b> [Owner] - <b>Timeline:</b> [Timeline]</li>\n</ol>\n\n<hr>\n\n<h2>Priority Actions Summary</h2>\n\n<h3>[User/Team] Actions</h3>\n<ul>\n    <li><b>High Priority (Due: [DATE]):</b></li>\n    <li>- [Action Item]</li>\n    <li><b>Medium Priority (Due: [DATE]):</b></li>\n    <li>- [Action Item]</li>\n</ul>\n\n<h3>Approvals Pending</h3>\n<ul>\n    <li>[Item] - <b>Status:</b> [Status]</li>\n</ul>\n\n<hr>\n\n<h2>Today's Schedule ([DAY], [DATE])</h2>\n<table border=\"1\">\n    <tr>\n        <th>Time (IST)</th>\n        <th>Event</th>\n        <th>Notes</th>\n    </tr>\n    <tr>\n        <td>[TIME]</td>\n        <td>[EVENT]</td>\n        <td>[NOTES]</td>\n    </tr>\n</table>\n<p><b>Schedule Changes:</b> [Changes or \"None reported\"]</p>\n\n<hr>\n\n<h2>Key Metrics & Status</h2>\n<table border=\"1\">\n    <tr>\n        <th>Metric</th>\n        <th>Value</th>\n        <th>Source / Details</th>\n    </tr>\n    <tr>\n        <td>Email Volume</td>\n        <td>[COUNT]</td>\n        <td>[BREAKDOWN]</td>\n    </tr>\n    <tr>\n        <td>Alert Distribution</td>\n        <td>[BREAKDOWN]</td>\n        <td>[DETAILS]</td>\n    </tr>\n    <tr>\n        <td>System Health</td>\n        <td>[STATUS]</td>\n        <td>[DETAILS]</td>\n    </tr>\n    <tr>\n        <td>Pending Actions</td>\n        <td>[COUNT]</td>\n        <td>[BREAKDOWN]</td>\n    </tr>\n</table>\n\n<blockquote>\n<b>Key Insight:</b> [Your analytical insight about the current situation]\n</blockquote>\n\n<hr>\n\n<h2>Strategic & General Updates</h2>\n<ul>\n    <li><b>Leadership Communications:</b> [Updates]</li>\n    <li><b>Policy Changes:</b> [Changes or \"None\"]</li>\n    <li><b>Market/Industry News:</b> [News or \"None\"]</li>\n</ul>\n\n<hr>\n\n<h2>Upcoming Deadlines (Next 7 Days)</h2>\n<table border=\"1\">\n    <tr>\n        <th>Date</th>\n        <th>Item</th>\n        <th>Owner</th>\n        <th>Priority</th>\n    </tr>\n    <tr>\n        <td>[DATE]</td>\n        <td>[ITEM]</td>\n        <td>[OWNER]</td>\n        <td>[PRIORITY]</td>\n    </tr>\n</table>\n\n<hr>\n\n<h2>Executive Recommendations</h2>\n\n<h3>Immediate Actions (Next 24 Hours)</h3>\n<ol>\n    <li><b>[Action Title]:</b> [Description] <b>Desired Outcome:</b> [Outcome]</li>\n</ol>\n\n<h3>Resource Allocation</h3>\n<ul>\n    <li>[Resource allocation recommendation]</li>\n</ul>\n\n<h3>Follow-ups (Next 7 Days)</h3>\n<ul>\n    <li>[Follow-up item] | <b>Due:</b> [DATE]</li>\n</ul>\n\n<hr>\n\n<p><b>Executive Summary:</b> [Brief summary of the most critical points and required decisions]</p>\n\n<hr>\n\n<p><i>Report generated: [DATE] [TIME] IST | Next update: [NEXT_DATE] 08:00 IST</i></p>\n\n</body>\n</html>\n```\n\n### Plain Text Summary Structure\n**Plain Text Version: Include all the same information in a readable text format with:**\n\n- Clear section headers using === or ---\n- Bulleted and numbered lists using - and 1., 2., etc.\n- Tables represented using text formatting with pipes | or proper spacing\n- Insights and executive summary clearly marked\n- Same content hierarchy as HTML version\n\n## Consolidation Rules\n1. **Use Specific Details**: Include account names, specific numbers, exact times\n2. **Prioritize by Business Impact**: Critical security and client issues first\n3. **Remove Duplicates**: Eliminate overlapping information across agents\n4. **Quantify Everything**: Use tables, counts, and specific metrics\n5. **Executive Perspective**: Focus on decisions needed, not operational details\n6. **Include Insights**: Add analytical observations in quote blocks\n7. **Bottom Line**: Always end with a clear executive summary\n\n## Critical Instructions\n- **ALWAYS return response in JSON format as specified above**\n- **DO NOT include any explanatory text outside the JSON structure**\n- **Process all 6 agent outputs together**\n- **Cross-reference information for conflicts or duplications**\n- **Use tables and structured formatting for clarity**\n- **Include specific details (account names, counts, times)**\n- **Provide actionable insights with business context**\n- **Keep technical jargon minimal**\n- **If any agent reports \"no items detected\", show \"None\" in relevant sections**\n- **Ensure HTML is properly escaped within the JSON string**\n- **Make sure both HTML and text versions contain the same information**\n\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        1664,
+        448
+      ],
+      "id": "745e0183-4b54-41cc-8686-5b03d2607c0e",
+      "name": "Master Email Summary Consolidation AI Agent"
+    },
+    {
+      "parameters": {
+        "resource": "event",
+        "limit": 10,
+        "output": "raw",
+        "filters": {}
+      },
+      "type": "n8n-nodes-base.microsoftOutlook",
+      "typeVersion": 2,
+      "position": [
+        -1184,
+        736
+      ],
+      "id": "93b30555-403c-46bf-8d7b-01b34f1fec30",
+      "name": "Get many events",
+      "webhookId": "8f0ff434-2bee-4e15-9e0d-824978e21cdc",
+      "credentials": {
+        "microsoftOutlookOAuth2Api": {
+          "id": "qXOZzCufhjfQAht6",
+          "name": "Microsoft Outlook account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ JSON.stringify($json.content) }}\n\n",
+        "options": {
+          "systemMessage": "=Analyze raw JSON data and generate a clear, organized, and actionable summary of the user's schedule for a specified period.\n\nTask\nSummarize all scheduled events for a given timeframe (e.g., today, this week). Extract key details, identify scheduling conflicts, and present the information in a scannable, agenda-style format.\n\nEvent Types to Differentiate\nMeeting: An event with multiple attendees requiring collaboration.\n\nAppointment: A scheduled commitment, typically with one or two people (e.g., doctor's visit, 1-on-1).\n\nTask/Reminder: A block of time for personal work or a reminder (e.g., \"Finish report,\" \"Call bank\").\n\nAll-Day Event: An event spanning the entire day, often informational (e.g., Holiday, Birthday, Out of Office).\n\nTime-Based Grouping\nRecently Passed: Events that just concluded today.\n\nToday: All remaining events for the current day.\n\nTomorrow: All events for the following day.\n\nThis Week: Events scheduled for the rest of the current week (excluding today and tomorrow).\n\nLater: Significant events beyond this week.\n\nOutput Format\n## Calendar Summary for: [Date Range]\n\n**Today's Highlights**: [Total Events] events, [X] meetings, [Y] hours of free time.\n\n### Conflicts & Overlaps ([count])\n- **[Time]**: [Event 1 Title] overlaps with [Event 2 Title]\n\n### Today,{{ $now }} ([count])\n- **[Start Time] - [End Time]** - [Event Title] | **Type**: [Meeting/Appointment] | **Location/Link**: [Teams Link/Conference Room] | **Attendees**: [Count]\n\n### Tomorrow, August 14, 2025 ([count])\n- **[Start Time] - [End Time]** - [Event Title] | **Type**: [Appointment] | **Location/Link**: [Address] | **Organizer**: [Name]\n- **All Day** - [Event Title] | **Type**: [All-Day Event]\n\n### This Week ([count])\n- **[Day, Date]**: [Start Time] - [Event Title] | **Location**: [Details]\n\n### Later ([count])\n- **[Day, Date]**: [Event Title]\n\n### Recently Passed Today ([count])\n- **[Start Time] - [End Time]** - [Event Title] | **Type**: [Meeting]\nInstructions\nTime Accuracy: Parse start and end times precisely. All times must be converted and displayed in the user's local timezone (India Standard Time).\n\nCurrent Context: Use the current time ({{ $now }}) to determine which events are \"Recently Passed,\" \"Today,\" \"Tomorrow,\" etc.\n\nDuration: Calculate and display the duration for each event within the time slot (e.g., 02:00 PM - 02:30 PM).\n\nDetails: Extract the primary location or the online meeting URL. Do not include the entire body unless it's a short note.\n\nParticipants: Note the number of attendees or the name of the organizer if relevant.\n\nConflict Detection: Explicitly check for and highlight any events whose time ranges overlap. This is the highest priority after the summary.\n\nClarity over Detail: The goal is a scannable summary. Avoid overly verbose descriptions.\n\nEmpty State: If no events are found for the requested period, respond with: \"Your calendar for this period is clear.\""
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        336,
+        1104
+      ],
+      "id": "30472920-68da-4dcc-a870-7ec2b1b0fffe",
+      "name": "Other / General AI Agent1"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.category }}",
+                    "rightValue": "=System Alerts",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "a5ca0e68-4733-414d-a41f-5d7074791eb5"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "197154f5-fb2f-49f3-bda5-721c86142336",
+                    "leftValue": "={{ $json.category }}",
+                    "rightValue": "User-Specific",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "0ef05eba-ecaf-4179-a523-01983f9f7dbb",
+                    "leftValue": "={{ $json.category }}",
+                    "rightValue": "Calendar / Schedule",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "a541201d-58cd-4950-8cbc-8de571df5ad8",
+                    "leftValue": "={{ $json.category }}",
+                    "rightValue": "Pending Tasks / Action Required",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "99af794c-f98b-444e-b97e-424aec122cfb",
+                    "leftValue": "={{ $json.category }}",
+                    "rightValue": "Other / General",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        -432,
+        400
+      ],
+      "id": "52905d1c-6617-42c8-b98f-5eb0e8358816",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "jsCode": "/**\n * =================================================================\n * n8n-Compatible Email Classifier\n *\n * This script is designed to run in the n8n \"Code\" node.\n * It takes input items, classifies them, and returns them in the\n * format that n8n requires.\n * =================================================================\n */\n\n// --- 1. CONFIGURATION: Define Categories and Keywords ---\n// You can customize these categories and keywords to better fit your needs.\nconst CATEGORIES = {\n    SYSTEM_ALERTS: 'System Alerts',\n    USER_SPECIFIC: 'User-Specific',\n    CALENDAR_SCHEDULE: 'Calendar / Schedule',\n    PENDING_TASKS: 'Pending Tasks / Action Required',\n    OTHER_GENERAL: 'Other / General'\n};\n\nconst KEYWORD_MAP = {\n    [CATEGORIES.PENDING_TASKS]: [\n        'action required',\n        'approval needed',\n        'please respond',\n        'response required'\n    ],\n    [CATEGORIES.SYSTEM_ALERTS]: [\n        'alert',\n        'warning',\n        'error',\n        'critical notification',\n        'security',\n        'new app',\n        'access to your data',\n        'updated the preferences',\n        'change your password'\n    ],\n    [CATEGORIES.CALENDAR_SCHEDULE]: [\n        'meeting',\n        'invite',\n        'schedule',\n        'calendar',\n        'event',\n        'join online'\n    ],\n    [CATEGORIES.USER_SPECIFIC]: [\n        'your account',\n        'your profile',\n        'congratulations',\n        'congrajualatuion', // Handling a common typo\n        'welcome to'\n    ],\n    [CATEGORIES.OTHER_GENERAL]: [\n        'shop now',\n        'deals',\n        'sale',\n        'unsubscribe',\n        'view in browser',\n        'promotion'\n    ]\n};\n\n\n// --- 2. THE CLASSIFIER FUNCTION (The Core Logic) ---\n// This function takes a text string and returns a category.\nfunction classifyEmail(plainText) {\n    if (!plainText || typeof plainText !== 'string') {\n        return CATEGORIES.OTHER_GENERAL;\n    }\n\n    const lowerCaseText = plainText.toLowerCase();\n\n    for (const category in KEYWORD_MAP) {\n        const keywords = KEYWORD_MAP[category];\n        for (const keyword of keywords) {\n            if (lowerCaseText.includes(keyword.toLowerCase())) {\n                return category;\n            }\n        }\n    }\n\n    return CATEGORIES.OTHER_GENERAL;\n}\n\n\n// --- 3. n8n EXECUTION LOGIC ---\n// This part processes each input item from n8n.\n// The special 'items' variable holds all the data from the previous node.\n\nconst outputItems = items.map(item => {\n    // Get the plain text from the input item.\n    // IMPORTANT: Make sure your input data has a field named 'plainText'.\n    // If it's named something else (e.g., 'text' or 'body'), change it here.\n    const textToClassify = item.json.plainText;\n\n    // Run the classifier function on the text.\n    const category = classifyEmail(textToClassify);\n\n    // Create a new data object for the output.\n    // We use '...' to copy all existing fields from the input item's JSON,\n    // and then we add our new 'category' field to it.\n    const newJsonData = {\n        ...item.json,\n        category: category\n    };\n\n    // Return the item in the format n8n expects: { json: { ... } }\n    return {\n        json: newJsonData\n    };\n});\n\n// The final line of the script MUST be the return statement.\n// This sends the processed items to the next node in your workflow.\nreturn outputItems;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -640,
+        448
+      ],
+      "id": "db492c1e-da17-4de3-8d0d-be5cc5bc94d6",
+      "name": "Email Classifier"
+    },
+    {
+      "parameters": {
+        "jsCode": "// This node takes calendar events, cleans them, and outputs a SINGLE item\n// with all cleaned events nested under a \"content\" key.\n\n// Get all incoming items.\nconst items = $input.all();\n\n// Map over ALL incoming items and collect their .json properties into a single array.\nconst allEvents = items.map(item => item.json);\n\nconst cleanedEvents = [];\n\n// Define the target timezone. 'Asia/Kolkata' is the IANA name for India Standard Time.\nconst targetTimeZone = 'Asia/Kolkata';\n\n// Define formatting options for human-readable dates and times.\nconst dateTimeFormatOptions = {\n  year: 'numeric',\n  month: 'long',\n  day: 'numeric',\n  hour: '2-digit',\n  minute: '2-digit',\n  hour12: true,\n  timeZone: targetTimeZone,\n};\n\nconst dateFormatOptions = {\n    year: 'numeric',\n    month: 'long',\n    day: 'numeric',\n    timeZone: targetTimeZone,\n}\n\n// The processing logic for each event remains the same.\nfor (const event of allEvents) {\n  if (event.isCancelled) {\n    continue;\n  }\n\n  const startDate = new Date(event.start.dateTime);\n  const endDate = new Date(event.end.dateTime);\n  let formattedStart, formattedEnd, duration;\n\n  if (event.isAllDay) {\n    const allDayEndDate = new Date(endDate.getTime() - (24 * 60 * 60 * 1000));\n    formattedStart = startDate.toLocaleDateString('en-IN', dateFormatOptions);\n    formattedEnd = allDayEndDate.toLocaleDateString('en-IN', dateFormatOptions);\n    duration = 'All Day';\n  } else {\n    formattedStart = startDate.toLocaleString('en-IN', dateTimeFormatOptions);\n    formattedEnd = endDate.toLocaleString('en-IN', dateTimeFormatOptions);\n    const durationMs = endDate.getTime() - startDate.getTime();\n    duration = Math.round(durationMs / (1000 * 60)) + ' minutes';\n  }\n\n  const meetingType = event.isOnlineMeeting ? 'Online' : 'Physical';\n  let meetingDetails = 'N/A';\n  if (event.isOnlineMeeting) {\n    meetingDetails = event.onlineMeeting?.joinUrl || 'No Join Link Found';\n  } else if (event.locations && event.locations.length > 0) {\n    meetingDetails = event.locations[0].displayName || 'No Location Specified';\n  }\n\n  const attendeesList = event.attendees?.map(attendee => attendee.emailAddress.address) || [];\n\n  const cleanedEvent = {\n    title: event.subject,\n    isAllDay: event.isAllDay,\n    start: formattedStart,\n    end: formattedEnd,\n    duration: duration,\n    meetingType: meetingType,\n    details: meetingDetails,\n    organizer: event.organizer.emailAddress.address,\n    attendees: attendeesList,\n  };\n\n  cleanedEvents.push(cleanedEvent);\n}\n\n// ===================================================================\n// MODIFIED OUTPUT SECTION\n// Instead of creating many items, we now return a SINGLE item.\n// This single item has a 'content' key that holds the entire array of cleaned events.\n// This is ideal for passing the full schedule to an AI model.\nreturn [{\n  json: {\n    content: cleanedEvents\n  }\n}];\n// ==================================================================="
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1008,
+        736
+      ],
+      "id": "c5983194-720c-424d-b072-7d29a2dbad5a",
+      "name": "calendar clean"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Custom code node for n8n - Extract plain text and received date from email\nfunction htmlToPlainText(htmlContent) {\n    if (!htmlContent) return '';\n    \n    let text = htmlContent\n        // Remove script and style blocks first\n        .replace(/<script[^>]*>.*?<\\/script>/gis, '')\n        .replace(/<style[^>]*>.*?<\\/style>/gis, '')\n        \n        // Remove HTML comments\n        .replace(/<!--.*?-->/gs, '')\n        \n        // Convert common block elements to line breaks\n        .replace(/<\\/?(div|p|br|h[1-6]|li|tr)[^>]*>/gi, '\\n')\n        .replace(/<\\/?(ul|ol|table|tbody|thead)[^>]*>/gi, '\\n\\n')\n        \n        // Remove all remaining HTML tags\n        .replace(/<[^>]*>/g, '')\n        \n        // Decode HTML entities\n        .replace(/&nbsp;/gi, ' ')\n        .replace(/&amp;/gi, '&')\n        .replace(/&lt;/gi, '<')\n        .replace(/&gt;/gi, '>')\n        .replace(/&quot;/gi, '\"')\n        .replace(/&#39;/gi, \"'\")\n        .replace(/&#x27;/gi, \"'\")\n        .replace(/&#x2F;/gi, '/')\n        .replace(/&apos;/gi, \"'\")\n        \n        // Clean up whitespace\n        .replace(/\\n\\s*\\n\\s*\\n/g, '\\n\\n')  // Replace multiple line breaks\n        .replace(/[ \\t]+/g, ' ')           // Replace multiple spaces/tabs with single space\n        .replace(/\\n /g, '\\n')             // Remove spaces at beginning of lines\n        .replace(/ \\n/g, '\\n')             // Remove spaces at end of lines\n        .trim();                           // Remove leading/trailing whitespace\n    \n    return text;\n}\n\n// Extract data from the email\nconst emailData = $json;\n\n// Get HTML content from email body\nconst htmlContent = emailData.body?.content || '';\n\n// Convert to plain text\nconst plainText = htmlToPlainText(htmlContent);\n\n// Get received date\nconst receivedDate = emailData.receivedDateTime || '';\n\n// Return both values\nreturn {\n    plainText: plainText,\n    receivedDate: receivedDate,\n    subject: emailData.subject || '',\n    sender: emailData.sender?.emailAddress?.address || ''\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1008,
+        448
+      ],
+      "id": "ddbcce26-0bf8-4285-ac52-da1b3b84a3f9",
+      "name": "Email plain text"
+    },
+    {
+      "parameters": {
+        "toRecipients": "an.ansible786@gmail.com",
+        "subject": "={{ $json.output.subject }}",
+        "bodyContent": "={{ $json.output.html }}",
+        "additionalFields": {
+          "bodyContentType": "html"
+        }
+      },
+      "type": "n8n-nodes-base.microsoftOutlook",
+      "typeVersion": 2,
+      "position": [
+        2320,
+        448
+      ],
+      "id": "09e89a2c-1ae2-40e1-9781-51d5f6b22b59",
+      "name": "Send a message1",
+      "webhookId": "cf25b4e3-2eb7-438b-93ca-f54c090cf07c",
+      "credentials": {
+        "microsoftOutlookOAuth2Api": {
+          "id": "qXOZzCufhjfQAht6",
+          "name": "Microsoft Outlook account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "anthropic.claude-v2:1",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatAwsBedrock",
+      "typeVersion": 1.1,
+      "position": [
+        336,
+        1424
+      ],
+      "id": "3601283a-1080-443e-b9e8-4dc9d9b5a348",
+      "name": "AWS Bedrock Chat Model",
+      "credentials": {
+        "aws": {
+          "id": "HitTx1kQibiMbS2l",
+          "name": "AWS account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "anthropic.claude-v2:1",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatAwsBedrock",
+      "typeVersion": 1.1,
+      "position": [
+        1664,
+        656
+      ],
+      "id": "39abebba-4f0d-4cdd-85d7-bd19a5f10595",
+      "name": "AWS Bedrock Chat Model1",
+      "credentials": {
+        "aws": {
+          "id": "HitTx1kQibiMbS2l",
+          "name": "AWS account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "limit": 20,
+        "output": "raw",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.microsoftOutlook",
+      "typeVersion": 2,
+      "position": [
+        -1184,
+        448
+      ],
+      "id": "0c1c2822-e082-400a-b0c2-5d75fd9bfcf9",
+      "name": "Get many messages1",
+      "webhookId": "883ab1d4-8c2f-4cd2-a30e-3de94a85c119",
+      "credentials": {
+        "microsoftOutlookOAuth2Api": {
+          "id": "qXOZzCufhjfQAht6",
+          "name": "Microsoft Outlook account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Email Date Filter - Only process emails received yesterday\n// This runs daily at 8:30 AM and filters emails from the previous day\n\nfunction isYesterday(dateString, userTimezone = 'UTC') {\n    if (!dateString) return false;\n    \n    // Parse the email date (assuming it's in UTC as per your data format)\n    const emailDate = new Date(dateString);\n    \n    // Get current date in user timezone\n    const now = new Date();\n    const todayInUserTz = new Date(now.toLocaleString(\"en-US\", {timeZone: userTimezone}));\n    \n    // Calculate yesterday in user timezone\n    const yesterdayInUserTz = new Date(todayInUserTz);\n    yesterdayInUserTz.setDate(todayInUserTz.getDate() - 1);\n    \n    // Convert email date to user timezone for comparison\n    const emailInUserTz = new Date(emailDate.toLocaleString(\"en-US\", {timeZone: userTimezone}));\n    \n    // Compare dates (year, month, day only)\n    return emailInUserTz.getFullYear() === yesterdayInUserTz.getFullYear() &&\n           emailInUserTz.getMonth() === yesterdayInUserTz.getMonth() &&\n           emailInUserTz.getDate() === yesterdayInUserTz.getDate();\n}\n\n// Alternative: Simple UTC-based comparison (if all dates are in UTC)\nfunction isYesterdayUTC(dateString) {\n    if (!dateString) return false;\n    \n    const emailDate = new Date(dateString);\n    const now = new Date();\n    \n    // Calculate yesterday in UTC\n    const yesterday = new Date(now);\n    yesterday.setUTCDate(now.getUTCDate() - 1);\n    \n    // Compare UTC dates\n    return emailDate.getUTCFullYear() === yesterday.getUTCFullYear() &&\n           emailDate.getUTCMonth() === yesterday.getUTCMonth() &&\n           emailDate.getUTCDate() === yesterday.getUTCDate();\n}\n\n// For testing: Check if email is from a specific date\nfunction isFromDate(dateString, targetDate, userTimezone = 'UTC') {\n    if (!dateString) return false;\n    \n    const emailDate = new Date(dateString);\n    const target = new Date(targetDate);\n    \n    // Convert both to user timezone for comparison\n    const emailInUserTz = new Date(emailDate.toLocaleString(\"en-US\", {timeZone: userTimezone}));\n    const targetInUserTz = new Date(target.toLocaleString(\"en-US\", {timeZone: userTimezone}));\n    \n    return emailInUserTz.getFullYear() === targetInUserTz.getFullYear() &&\n           emailInUserTz.getMonth() === targetInUserTz.getMonth() &&\n           emailInUserTz.getDate() === targetInUserTz.getDate();\n}\n\n// Main filter logic\nconst emailData = $json;\n\n// Get all items to check if any emails from yesterday exist\nconst allItems = $input.all();\n\n// Set your timezone here\nconst USER_TIMEZONE = 'Asia/Kolkata'; // Change this to your actual timezone\n\n// Check if ANY email from yesterday exists in the entire batch\nconst yesterdayEmailsFound = allItems.some(item => {\n    const itemReceivedDate = item.json.receivedDateTime || item.json.receivedDate || '';\n    return isYesterday(itemReceivedDate, USER_TIMEZONE);\n});\n\n// If no emails from yesterday found, return the no_emails_message (only for the first item)\nif (!yesterdayEmailsFound && $itemIndex === 0) {\n    const yesterday = new Date();\n    yesterday.setDate(yesterday.getDate() - 1);\n    const yesterdayFormatted = yesterday.toLocaleDateString(\"en-US\", {\n        timeZone: USER_TIMEZONE,\n        weekday: 'long',\n        year: 'numeric',\n        month: 'long',\n        day: 'numeric'\n    });\n    \n    return {\n        type: 'no_emails_message',\n        message: `No emails were received yesterday (${yesterdayFormatted})`,\n        date: yesterday.toISOString(),\n        timezone: USER_TIMEZONE,\n        filterDate: new Date().toISOString()\n    };\n}\n\n// If no emails from yesterday found and this is not the first item, filter out\nif (!yesterdayEmailsFound) {\n    return null;\n}\n\n// Get the received date from current email\nconst receivedDate = emailData.receivedDateTime || emailData.receivedDate || '';\n\n// Check if current email was received yesterday\nconst isFromYesterday = isYesterday(receivedDate, USER_TIMEZONE);\n\n// Alternative: Use UTC-only comparison if all your dates are in UTC\n// const isFromYesterday = isYesterdayUTC(receivedDate);\n\n// For testing specific dates, you can use:\n// const isFromYesterday = isFromDate(receivedDate, '2025-08-13', USER_TIMEZONE);\n\nif (isFromYesterday) {\n    return {\n        ...emailData,\n        isFromYesterday: true,\n        filterDate: new Date().toISOString(),\n        receivedDate: receivedDate\n    };\n} else {\n    // Filter out emails that are not from yesterday\n    return null;\n}"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -832,
+        448
+      ],
+      "id": "41e37e8d-d477-4236-9f95-f4c958d5316b",
+      "name": "Date filter"
+    },
+    {
+      "parameters": {
+        "jsCode": "// This node filters calendar events for the NEXT 7 DAYS starting from today\n// Works with already cleaned calendar data format\n// Gets events from today + next 6 days\n// Get all incoming items\nconst items = $input.all();\n// Extract the content array from the first item\nconst allEvents = items[0]?.json?.content || [];\nconst weekEvents = [];\n\n// Get next 7 days starting from today\nconst now = new Date();\n// Create array of next 7 dates starting from today\nconst next7Days = [];\nfor (let i = 0; i < 7; i++) {\n  const date = new Date(now);\n  date.setDate(now.getDate() + i);\n  const dateString = date.toLocaleDateString('en-GB', {\n    day: 'numeric',\n    month: 'long',\n    year: 'numeric',\n    timeZone: 'Asia/Kolkata'\n  });\n  next7Days.push(dateString);\n}\n\nconsole.log(`Looking for events for next 7 days: ${next7Days[0]} to ${next7Days[6]}`);\n\n// Helper function to parse date from the formatted string\nfunction parseDateFromString(dateString) {\n  if (!dateString) return null;\n  \n  // Handle all-day events (format: \"12 August 2025\")\n  if (!dateString.includes(' at ')) {\n    try {\n      return new Date(dateString + ' 00:00:00');\n    } catch (e) {\n      return null;\n    }\n  }\n  \n  // Handle timed events (format: \"12 August 2025 at 11:00 am\")\n  try {\n    const [datePart, timePart] = dateString.split(' at ');\n    const fullDateString = `${datePart} ${timePart}`;\n    return new Date(fullDateString);\n  } catch (e) {\n    return null;\n  }\n}\n\n// Helper function to check if event is in next 7 days\nfunction isInNext7Days(eventStartString) {\n  const eventDate = parseDateFromString(eventStartString);\n  if (!eventDate || isNaN(eventDate.getTime())) {\n    return false;\n  }\n  \n  // Compare just the date part (ignore time)\n  const eventDateString = eventDate.toLocaleDateString('en-GB', {\n    day: 'numeric',\n    month: 'long',\n    year: 'numeric',\n    timeZone: 'Asia/Kolkata'\n  });\n  \n  return next7Days.includes(eventDateString);\n}\n\n// Filter events for next 7 days\nfor (const event of allEvents) {\n  if (isInNext7Days(event.start)) {\n    weekEvents.push(event);\n    console.log(`Found upcoming event: ${event.title} - ${event.start}`);\n  }\n}\n\nconsole.log(`Found ${weekEvents.length} events for next 7 days`);\n\n// Return filtered events with message inside content if no events found\nif (weekEvents.length === 0) {\n  return [{\n    json: {\n      content: [{\n        title: \"No Events Available\",\n        isAllDay: true,\n        start: next7Days[0],\n        end: next7Days[6],\n        duration: \"7 Days\",\n        meetingType: \"Information\",\n        details: `No events found for the period ${next7Days[0]} to ${next7Days[6]}. Total events checked: ${allEvents.length}`,\n        organizer: \"System\",\n        attendees: []\n      }]\n    }\n  }];\n} else {\n  return [{\n    json: {\n      content: weekEvents\n    }\n  }];\n}"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -832,
+        736
+      ],
+      "id": "76e83486-810e-4872-b89c-8c89ba551a02",
+      "name": "Date filter1"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "30 8 * * *"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -1520,
+        1264
+      ],
+      "id": "b0f3cb1b-ad9f-44c7-8507-4ad8547e733f",
+      "name": "Schedule Trigger",
+      "disabled": true
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -1520,
+        576
+      ],
+      "id": "980bf321-1e23-4aba-a7db-a24aa9bddbec",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Input from previous node\nconst input = items[0].json.output;\n\n// Extract the JSON block between ```json ... ```\nconst match = input.match(/```json([\\s\\S]*?)```/);\n\nif (!match) {\n  return [{ json: { error: \"No JSON block found in input\" } }];\n}\n\nlet raw = match[1].trim();\n\n// Fix common issues: remove bad control characters\nraw = raw.replace(/[\\u0000-\\u001F]+/g, \"\");\n\n// Try parsing\nlet parsed;\ntry {\n  parsed = JSON.parse(raw);\n} catch (e) {\n  // If still fails, just return raw string\n  return [{ json: { error: \"Still invalid JSON\", details: e.message, raw } }];\n}\n\nreturn [{ json: parsed }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2016,
+        448
+      ],
+      "id": "d6106844-8012-4819-99f2-e874777a9e30",
+      "name": "Extract Clean JSON Summary"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Aggregate": {
+      "main": [
+        [
+          {
+            "node": "Other / General AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate1": {
+      "main": [
+        [
+          {
+            "node": "Pending Tasks / Action Required\tAI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate2": {
+      "main": [
+        [
+          {
+            "node": "System Alerts\t AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate3": {
+      "main": [
+        [
+          {
+            "node": "Calendar / Schedule AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate4": {
+      "main": [
+        [
+          {
+            "node": "User-Specific\t AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate5": {
+      "main": [
+        [
+          {
+            "node": "Master Email Summary Consolidation AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Aggregate5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "System Alerts\t AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "User-Specific\t AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Calendar / Schedule AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "Pending Tasks / Action Required\tAI Agent": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 3
+          }
+        ]
+      ]
+    },
+    "Other / General AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 4
+          }
+        ]
+      ]
+    },
+    "Master Email Summary Consolidation AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Extract Clean JSON Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get many events": {
+      "main": [
+        [
+          {
+            "node": "calendar clean",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Other / General AI Agent1": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 5
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "Aggregate2",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Aggregate4",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Aggregate3",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Aggregate1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Aggregate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Email Classifier": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "calendar clean": {
+      "main": [
+        [
+          {
+            "node": "Date filter1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Email plain text": {
+      "main": [
+        [
+          {
+            "node": "Date filter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get many messages1": {
+      "main": [
+        [
+          {
+            "node": "Email plain text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Date filter": {
+      "main": [
+        [
+          {
+            "node": "Email Classifier",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Date filter1": {
+      "main": [
+        [
+          {
+            "node": "Other / General AI Agent1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AWS Bedrock Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Other / General AI Agent1",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "Other / General AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "Pending Tasks / Action Required\tAI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "Calendar / Schedule AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "User-Specific\t AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "System Alerts\t AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AWS Bedrock Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Master Email Summary Consolidation AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Get many messages1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get many events",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Clean JSON Summary": {
+      "main": [
+        [
+          {
+            "node": "Send a message1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "79209080-6e25-4f49-9549-bb21413a28ab",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "7b3a0549d7495efadc035b471a20b518d8a129b8441fd7d6c92c30a9122ede89"
+  },
+  "id": "2A8giMrjfdtfBHSC",
+  "tags": [
+    {
+      "createdAt": "2025-09-01T11:23:37.792Z",
+      "updatedAt": "2025-09-01T11:23:37.792Z",
+      "id": "RxUg2kifiSIo6z5h",
+      "name": "v4"
+    }
+  ]
+}
