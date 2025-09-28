@@ -1,5 +1,5 @@
 {
-  "name": "My workflow",
+  "name": "SmartShift Mail Summarizer",
   "nodes": [
     {
       "parameters": {
@@ -11,10 +11,10 @@
       "type": "n8n-nodes-base.aggregate",
       "typeVersion": 1,
       "position": [
-        0,
-        880
+        -3024,
+        -352
       ],
-      "id": "54ca9fcf-c521-4a41-aa92-0aa2155729bc",
+      "id": "43802a83-e6f2-45bb-9787-164711729601",
       "name": "Aggregate"
     },
     {
@@ -27,10 +27,10 @@
       "type": "n8n-nodes-base.aggregate",
       "typeVersion": 1,
       "position": [
-        0,
-        640
+        -3024,
+        -592
       ],
-      "id": "2f01376f-94b7-4922-8837-e91ed094ccb6",
+      "id": "87e67973-e3ad-428e-94cd-b969a2ab1255",
       "name": "Aggregate1"
     },
     {
@@ -43,10 +43,10 @@
       "type": "n8n-nodes-base.aggregate",
       "typeVersion": 1,
       "position": [
-        0,
-        0
+        -3024,
+        -1232
       ],
-      "id": "0e2ea2ee-897e-4873-9ad8-2d5e2d8ad857",
+      "id": "0bac530a-4f11-46dc-b06b-baa71f3c20dc",
       "name": "Aggregate2"
     },
     {
@@ -59,10 +59,10 @@
       "type": "n8n-nodes-base.aggregate",
       "typeVersion": 1,
       "position": [
-        0,
-        432
+        -3024,
+        -800
       ],
-      "id": "f361577e-6a26-4417-83da-9f2c364b6a37",
+      "id": "2f696e6f-f0c1-4fad-ba5b-f8a6ab264fa4",
       "name": "Aggregate3"
     },
     {
@@ -75,10 +75,10 @@
       "type": "n8n-nodes-base.aggregate",
       "typeVersion": 1,
       "position": [
-        0,
-        208
+        -3024,
+        -1024
       ],
-      "id": "e4f9e6da-a23f-4062-8598-3ed8bcf5804c",
+      "id": "f3c1b7eb-1dbb-48a1-8274-cd3d267df3e8",
       "name": "Aggregate4"
     },
     {
@@ -91,10 +91,10 @@
       "type": "n8n-nodes-base.aggregate",
       "typeVersion": 1,
       "position": [
-        1456,
-        448
+        -1568,
+        -784
       ],
-      "id": "bff285c2-b8be-4f88-a7a7-90e3ff00c631",
+      "id": "5a0ce21e-e432-47ee-b140-09e42dc8c7ec",
       "name": "Aggregate5"
     },
     {
@@ -104,10 +104,10 @@
       "type": "n8n-nodes-base.merge",
       "typeVersion": 3.2,
       "position": [
-        1120,
-        384
+        -1904,
+        -848
       ],
-      "id": "473f6a34-2ee3-413b-b612-a1dd8cbe3a9a",
+      "id": "22035a48-2f16-48d6-ab6a-53dbeb19439a",
       "name": "Merge"
     },
     {
@@ -121,10 +121,10 @@
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 2.2,
       "position": [
-        336,
-        0
+        -2688,
+        -1232
       ],
-      "id": "285cb955-e428-42ec-89f9-06c9171f650d",
+      "id": "5cce398a-3b20-42fc-9f8f-0d8ac4d38fd2",
       "name": "System Alerts\t AI Agent"
     },
     {
@@ -138,10 +138,10 @@
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 2.2,
       "position": [
-        336,
-        208
+        -2688,
+        -1024
       ],
-      "id": "d66a77c5-38ba-46af-8cd2-759b2519ccc2",
+      "id": "a345666b-99f5-4073-9cda-3ac7f84dc5e1",
       "name": "User-Specific\t AI Agent"
     },
     {
@@ -155,10 +155,10 @@
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 2.2,
       "position": [
-        336,
-        432
+        -2688,
+        -800
       ],
-      "id": "326069c5-61aa-4614-96a3-99310d35e2df",
+      "id": "1a7b8475-ba07-4fb0-ad3e-b5578df562f1",
       "name": "Calendar / Schedule AI Agent"
     },
     {
@@ -172,10 +172,10 @@
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 2.2,
       "position": [
-        336,
-        640
+        -2688,
+        -592
       ],
-      "id": "bf624252-6b97-42bd-9444-ce191fec840e",
+      "id": "40efcd3c-8136-4f26-9c48-ccc4571e112a",
       "name": "Pending Tasks / Action Required\tAI Agent"
     },
     {
@@ -189,27 +189,28 @@
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 2.2,
       "position": [
-        336,
-        880
+        -2688,
+        -352
       ],
-      "id": "1daef41e-4194-4fd7-8baf-fa0fe3cbca27",
+      "id": "f43ec4bd-b7e7-4768-bf7a-582a39f6ace1",
       "name": "Other / General AI Agent"
     },
     {
       "parameters": {
         "promptType": "define",
-        "text": "={{ $json.data }} ",
+        "text": "={{ $json.data }}",
+        "hasOutputParser": true,
         "options": {
-          "systemMessage": "=You are an expert email summary consolidator. Your task is to combine outputs from 6 specialized email analysis agents and create a unified, prioritized summary for executive decision-making.\n\n## Input Sources\nYou will receive analysis from these 6 agents:\n1. **System Alerts Agent** - Technical issues and system health\n2. **User-Specific Emails Agent** - Individual user communications\n3. **Calendar Events Agent** - Meetings and time-sensitive events  \n4. **Pending Actions Agent** - Tasks and follow-ups requiring action\n5. **General & Other Agent** - Company updates and miscellaneous content\n6. **Outlook Calendar Agent** - Specific event details, accept/decline statuses, and updates from Outlook\n\n## Task\nCreate a comprehensive executive summary that prioritizes information by business impact and urgency. Consolidate information from both the Calendar Events Agent and the Outlook Calendar Agent into a single, de-duplicated schedule.\n\n## Critical Output Requirements\n\nToday’s date - {{ $now }}\n\n**YOU MUST ALWAYS RETURN YOUR RESPONSE IN THE EXACT JSON FORMAT SHOWN BELOW. DO NOT PROVIDE ANY OTHER TEXT OR EXPLANATION OUTSIDE OF THIS JSON STRUCTURE.**\n\n```json\n{\n  \"output\": {\n    \"subject\": \"<short, clear subject line for the email>\",\n    \"html\": \"<full HTML summary>\",\n    \"text\": \"<full plain text summary>\"\n  }\n}\n```\n\n### Subject Rules\n- Keep it under 80 characters  \n- Summarize the most urgent and important point from the report  \n- Include date (YYYY-MM-DD)  \n- Example: `\"Critical Security Alerts & Key Updates — 2025-08-13\"`\n\n### HTML Summary Structure\nGenerate HTML format with the following EXACT structure:\n\n```html\n<!DOCTYPE html>\n<html>\n<head>\n    <title>Executive Email Summary</title>\n</head>\n<body>\n\n<h1>Executive Email Summary - [CURRENT_DATE]</h1>\n<p><b>Total Emails Processed: [COUNT]</b></p>\n\n<hr>\n\n<h2>CRITICAL - Immediate Attention Required (Next 4 Hours)</h2>\n[Include only if critical items exist, otherwise show: <p>No critical priority items detected.</p>]\n\n<h3>System Security Alerts</h3>\n<ul>\n    <li><b>[Account/System Name]</b></li>\n    <li>[Alert Description]</li>\n</ul>\n\n<h3>Urgent Actions Required</h3>\n<ol>\n    <li>[Action Item] - <b>Owner:</b> [Owner] - <b>Timeline:</b> [Timeline]</li>\n</ol>\n\n<hr>\n\n<h2>Priority Actions Summary</h2>\n\n<h3>[User/Team] Actions</h3>\n<ul>\n    <li><b>High Priority (Due: [DATE]):</b></li>\n    <li>- [Action Item]</li>\n    <li><b>Medium Priority (Due: [DATE]):</b></li>\n    <li>- [Action Item]</li>\n</ul>\n\n<h3>Approvals Pending</h3>\n<ul>\n    <li>[Item] - <b>Status:</b> [Status]</li>\n</ul>\n\n<hr>\n\n<h2>Today's Schedule ([DAY], [DATE])</h2>\n<table border=\"1\">\n    <tr>\n        <th>Time (IST)</th>\n        <th>Event</th>\n        <th>Notes</th>\n    </tr>\n    <tr>\n        <td>[TIME]</td>\n        <td>[EVENT]</td>\n        <td>[NOTES]</td>\n    </tr>\n</table>\n<p><b>Schedule Changes:</b> [Changes or \"None reported\"]</p>\n\n<hr>\n\n<h2>Key Metrics & Status</h2>\n<table border=\"1\">\n    <tr>\n        <th>Metric</th>\n        <th>Value</th>\n        <th>Source / Details</th>\n    </tr>\n    <tr>\n        <td>Email Volume</td>\n        <td>[COUNT]</td>\n        <td>[BREAKDOWN]</td>\n    </tr>\n    <tr>\n        <td>Alert Distribution</td>\n        <td>[BREAKDOWN]</td>\n        <td>[DETAILS]</td>\n    </tr>\n    <tr>\n        <td>System Health</td>\n        <td>[STATUS]</td>\n        <td>[DETAILS]</td>\n    </tr>\n    <tr>\n        <td>Pending Actions</td>\n        <td>[COUNT]</td>\n        <td>[BREAKDOWN]</td>\n    </tr>\n</table>\n\n<blockquote>\n<b>Key Insight:</b> [Your analytical insight about the current situation]\n</blockquote>\n\n<hr>\n\n<h2>Strategic & General Updates</h2>\n<ul>\n    <li><b>Leadership Communications:</b> [Updates]</li>\n    <li><b>Policy Changes:</b> [Changes or \"None\"]</li>\n    <li><b>Market/Industry News:</b> [News or \"None\"]</li>\n</ul>\n\n<hr>\n\n<h2>Upcoming Deadlines (Next 7 Days)</h2>\n<table border=\"1\">\n    <tr>\n        <th>Date</th>\n        <th>Item</th>\n        <th>Owner</th>\n        <th>Priority</th>\n    </tr>\n    <tr>\n        <td>[DATE]</td>\n        <td>[ITEM]</td>\n        <td>[OWNER]</td>\n        <td>[PRIORITY]</td>\n    </tr>\n</table>\n\n<hr>\n\n<h2>Executive Recommendations</h2>\n\n<h3>Immediate Actions (Next 24 Hours)</h3>\n<ol>\n    <li><b>[Action Title]:</b> [Description] <b>Desired Outcome:</b> [Outcome]</li>\n</ol>\n\n<h3>Resource Allocation</h3>\n<ul>\n    <li>[Resource allocation recommendation]</li>\n</ul>\n\n<h3>Follow-ups (Next 7 Days)</h3>\n<ul>\n    <li>[Follow-up item] | <b>Due:</b> [DATE]</li>\n</ul>\n\n<hr>\n\n<p><b>Executive Summary:</b> [Brief summary of the most critical points and required decisions]</p>\n\n<hr>\n\n<p><i>Report generated: [DATE] [TIME] IST | Next update: [NEXT_DATE] 08:00 IST</i></p>\n\n</body>\n</html>\n```\n\n### Plain Text Summary Structure\n**Plain Text Version: Include all the same information in a readable text format with:**\n\n- Clear section headers using === or ---\n- Bulleted and numbered lists using - and 1., 2., etc.\n- Tables represented using text formatting with pipes | or proper spacing\n- Insights and executive summary clearly marked\n- Same content hierarchy as HTML version\n\n## Consolidation Rules\n1. **Use Specific Details**: Include account names, specific numbers, exact times\n2. **Prioritize by Business Impact**: Critical security and client issues first\n3. **Remove Duplicates**: Eliminate overlapping information across agents\n4. **Quantify Everything**: Use tables, counts, and specific metrics\n5. **Executive Perspective**: Focus on decisions needed, not operational details\n6. **Include Insights**: Add analytical observations in quote blocks\n7. **Bottom Line**: Always end with a clear executive summary\n\n## Critical Instructions\n- **ALWAYS return response in JSON format as specified above**\n- **DO NOT include any explanatory text outside the JSON structure**\n- **Process all 6 agent outputs together**\n- **Cross-reference information for conflicts or duplications**\n- **Use tables and structured formatting for clarity**\n- **Include specific details (account names, counts, times)**\n- **Provide actionable insights with business context**\n- **Keep technical jargon minimal**\n- **If any agent reports \"no items detected\", show \"None\" in relevant sections**\n- **Ensure HTML is properly escaped within the JSON string**\n- **Make sure both HTML and text versions contain the same information**\n\n"
+          "systemMessage": "=\nYou are an expert email summary consolidator. Your task is to combine outputs from 5 specialized email analysis agents and create a unified, prioritized summary for executive decision-making.\n\n## Input Sources\nYou will receive analysis from these 5 agents:\n1. **System Alerts Agent** - Technical issues and system health\n2. **User-Specific Emails Agent** - Individual user communications\n3. **Calendar Events Agent** - Meetings and time-sensitive events  \n4. **Pending Actions Agent** - Tasks and follow-ups requiring action\n5. **General & Other Agent** - Company updates and miscellaneous content\n6. **Outlook Calendar Agent** - Specific event details, accept/decline statuses, and updates from Outlook\n\n## Task\nCreate a comprehensive executive summary that prioritizes information by business impact and urgency.Consolidate information from both the Calendar Events Agent and the Outlook Calendar Agent into a single, de-duplicated schedule.\n\n\n\n## Output Format\nAlways return your final answer as JSON:\n\n{\n  \"output\": {\n    \"subject\": \"<short, clear subject line for the email>\",\n    \"html\": \"<full HTML summary>\",\n    \"text\": \"<full plain text summary>\"\n  }\n}\n\n### Subject Rules\n- Keep it under 80 characters  \n- Summarize the most urgent and important point from the report  \n- Include date (YYYY-MM-DD)  \n- Example: `\"Critical Security Alerts & Key Updates — 2025-08-13\"`\n\n### HTML Summary Structure\nGenerate HTML format with the following structure:\n\n```html\n<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"UTF-8\">\n    <title>Executive Email Summary</title>\n    <style>\n        body {\n            font-family: Arial, sans-serif;\n            margin: 0;\n            padding: 1rem;\n            background: #f9f9f9;\n            color: #222;\n        }\n        h1, h2, h3 {\n            margin-top: 1rem;\n            margin-bottom: 0.5rem;\n        }\n        h1 { font-size: 1.8rem; }\n        h2 { font-size: 1.4rem; border-left: 4px solid #004d40; padding-left: 0.5rem; }\n        h3 { font-size: 1.1rem; }\n        header {\n            background: #004d40;\n            color: #fff;\n            padding: 0.75rem 1rem;\n            margin-bottom: 1rem;\n        }\n        ul, ol { padding-left: 1.2rem; margin: 0.5rem 0; }\n        ul li, ol li { margin-bottom: 0.5rem; }\n        table {\n            width: 100%;\n            border-collapse: collapse;\n            margin-top: 0.5rem;\n            margin-bottom: 1rem;\n        }\n        th, td { border: 1px solid #ccc; padding: 0.5rem 0.8rem; text-align: left; }\n        th { background: #e0f2f1; }\n        blockquote {\n            background: #eee;\n            padding: 0.5rem 1rem;\n            margin: 0.8rem 0;\n            border-left: 4px solid #004d40;\n        }\n        section { margin-bottom: 2rem; }\n        footer {\n            font-size: 0.8rem;\n            text-align: center;\n            margin-top: 2rem;\n            color: #555;\n        }\n        hr {\n            border: 0;\n            height: 1px;\n            background: #ccc;\n        }\n    </style>\n</head>\n<body>\n\n    <header>\n        <h1>Executive Email Summary - 2025-08-13</h1>\n        <p><strong>Total Emails Processed:</strong> 42</p>\n    </header>\n\n    <main>\n        <section>\n            <h2>Critical Items Requiring Immediate Attention (Next 4 Hours)</h2>\n\n            <h3>System Security Alerts</h3>\n            <ul>\n                <li><strong>Corporate Email Account (user***@example.com)</strong> – Unrecognized third-party app named “DemoApp” was granted access to the account.</li>\n                <li><strong>Internal Dev Portal</strong> – Unexpected profile modifications (name and recovery email change) were detected for a privileged account.</li>\n            </ul>\n\n            <h3>Urgent Actions Required</h3>\n            <ul>\n                <li>Verify and immediately revoke “DemoApp” access if unauthorized. <strong>Owner:</strong> IT Security | <strong>Timeline:</strong> Within 1 hour</li>\n                <li>Reset password for the Dev Portal account and enforce Multi-Factor Authentication (MFA). <strong>Owner:</strong> Account Owner / IT Security | <strong>Timeline:</strong> Within 2 hours</li>\n            </ul>\n        </section>\n\n        <section>\n            <h2>Priority Actions Summary</h2>\n\n            <h3>User-Specific Actions by Priority</h3>\n            <ul>\n                <li><strong>John Doe:</strong>\n                    <ul>\n                        <li><strong>High:</strong> 2 items – \"Third-party app access review\" & \"Profile change validation\" | <strong>Deadline:</strong> 2025-08-14</li>\n                        <li><strong>Medium:</strong> 1 item – \"Update notification settings for Q3 reports\" | <strong>Deadline:</strong> 2025-08-16</li>\n                    </ul>\n                </li>\n                 <li><strong>Finance Team:</strong>\n                    <ul>\n                        <li><strong>Medium:</strong> 1 item – \"Submit final Q3 budget proposal\" | <strong>Deadline:</strong> 2025-08-20</li>\n                    </ul>\n                </li>\n            </ul>\n\n            <h3>Approvals Pending</h3>\n            <ul>\n                <li>Q3 Departmental Budget | <strong>Status:</strong> Awaiting submission from Finance Team</li>\n                <li>New Vendor Contract (CloudServices Inc.) | <strong>Status:</strong> Awaiting final review from Legal</li>\n            </ul>\n        </section>\n\n        <section>\n            <h2>Today's Schedule Highlights (Wednesday, August 13)</h2>\n            <table>\n                <tr>\n                    <th>Time (IST)</th>\n                    <th>Event</th>\n                    <th>Notes</th>\n                </tr>\n                <tr>\n                    <td>09:30 AM</td>\n                    <td>Team Standup Meeting</td>\n                    <td>Standard daily check-in</td>\n                </tr>\n                <tr>\n                    <td>11:00 AM</td>\n                    <td>Project Titan Review</td>\n                    <td>Client attending; prepare status slides.</td>\n                </tr>\n                 <tr>\n                    <td>02:00 PM</td>\n                    <td>1-on-1: Manager Sync</td>\n                    <td>Discuss security alerts and team allocation.</td>\n                </tr>\n            </table>\n            <p><strong>Schedule Changes:</strong> None reported by Outlook or Calendar agents.</p>\n        </section>\n\n        <section>\n            <h2>Key Metrics & Status</h2>\n            <table>\n                <tr>\n                    <th>Metric</th>\n                    <th>Value</th>\n                    <th>Source / Details</th>\n                </tr>\n                <tr>\n                    <td>Email Volume</td>\n                    <td>42</td>\n                    <td>User-Specific: 21 | General: 15 | System Alerts: 3 | Calendar: 3</td>\n                </tr>\n                <tr>\n                    <td>Alert Distribution</td>\n                    <td>Critical: 2 | High: 1 | Medium: 0</td>\n                    <td>Two critical security alerts and one high-priority performance alert (DB server) detected.</td>\n                </tr>\n                <tr>\n                    <td>System Health</td>\n                    <td><strong>Action Required</strong></td>\n                    <td>Security events require immediate investigation and remediation.</td>\n                </tr>\n                 <tr>\n                    <td>Pending Actions</td>\n                    <td>5</td>\n                    <td>2 High-Priority, 2 Medium-Priority, 1 Low-Priority</td>\n                </tr>\n            </table>\n\n            <blockquote>\n                Key Insight: The two critical security alerts targeting user accounts suggest a potential coordinated phishing or credential compromise attempt. Immediate, decisive action is crucial to prevent lateral movement or data exfiltration.\n            </blockquote>\n        </section>\n\n        <section>\n            <h2>Strategic & General Updates</h2>\n            <ul>\n                <li><strong>Leadership Communications:</strong> An all-hands meeting is being scheduled for next week to discuss the annual performance review cycle.</li>\n                <li><strong>Policy Changes:</strong> None.</li>\n                <li><strong>Market/Industry News:</strong> Competitor 'InnovateCorp' has launched a new AI-driven analytics platform, which may impact our Q4 product roadmap.</li>\n            </ul>\n        </section>\n\n        <section>\n            <h2>Upcoming Deadlines (Next 7 Days)</h2>\n            <table>\n                <tr>\n                    <th>Date</th>\n                    <th>Item</th>\n                    <th>Owner</th>\n                    <th>Priority</th>\n                </tr>\n                <tr>\n                    <td>2025-08-14</td>\n                    <td>Third-party app access review</td>\n                    <td>John Doe / IT Security</td>\n                    <td><strong>Critical</strong></td>\n                </tr>\n                <tr>\n                    <td>2025-08-14</td>\n                    <td>Dev Portal profile validation & password reset</td>\n                    <td>John Doe / IT Security</td>\n                    <td><strong>Critical</strong></td>\n                </tr>\n                 <tr>\n                    <td>2025-08-16</td>\n                    <td>Update notification settings for Q3 reports</td>\n                    <td>John Doe</td>\n                    <td>Medium</td>\n                </tr>\n            </table>\n        </section>\n\n        <section>\n            <h2>Executive Recommendations</h2>\n\n            <h3>Immediate Actions (Next 24 Hours)</h3>\n            <ol>\n                <li><strong>Revoke \"DemoApp\" Access:</strong> Direct the IT Security team to immediately revoke the app's token and analyze its activity. <strong>Desired Outcome:</strong> Unauthorized access removed and scope of access understood.</li>\n                <li><strong>Secure Developer Portal Account:</strong> Mandate an immediate password reset and MFA enforcement for the affected user. <strong>Desired Outcome:</strong> Account secured against further unauthorized changes.</li>\n                <li><strong>Initiate Account Access Audit:</strong> Task IT Security with auditing access logs for both affected systems for any other suspicious activity in the last 72 hours. <strong>Desired Outcome:</strong> Confirmation of whether the breach is isolated or widespread.</li>\n            </ol>\n\n            <h3>Resource Allocation</h3>\n            <ul>\n                <li>Dedicate one senior security analyst to lead the incident response for the next 48 hours.</li>\n                <li>Prepare a communication draft for all employees regarding a mandatory password security reminder.</li>\n            </ul>\n\n            <h3>Follow-ups (Next 7 Days)</h3>\n            <ul>\n                <li>Review third-party application approval policies. | <strong>Due:</strong> 2025-08-20</li>\n                <li>Deliver a post-incident report detailing the root cause and remediation steps. | <strong>Due:</strong> 2025-08-22</li>\n            </ul>\n\n            <hr>\n            <p><strong>Executive Summary:</strong> Two critical security alerts indicate active, unauthorized access to at least two corporate systems. Immediate action is required to contain the threat by revoking access and securing the accounts. An urgent audit is necessary to determine the full scope of the potential breach and protect organizational assets.\n            </p>\n        </section>\n    </main>\n\n    <footer>\n        <hr>\n        <p>Report generated: 2025-08-13 17:23 IST | Next update: 2025-08-14 08:00 IST</p>\n    </footer>\n\n</body>\n</html>\n```\n\n### Plain Text Summary Structure\n**Plain Text Version: Include all the same information in a readable text format with:\n\nHeadings\n\nBulleted and numbered lists\n\nTables represented using text (use pipes | or indentation)\n\nInsights and executive summary clearly shown\n\n\n## Consolidation Rules\n1. **Use Specific Details**: Include account names, specific numbers, exact times\n2. **Prioritize by Business Impact**: Critical security and client issues first\n3. **Remove Duplicates**: Eliminate overlapping information across agents\n4. **Quantify Everything**: Use tables, counts, and specific metrics\n5. **Executive Perspective**: Focus on decisions needed, not operational details\n6. **Include Insights**: Add analytical observations in quote blocks\n7. **Bottom Line**: Always end with a clear executive summary\n\n## Instructions\n- Process all 5 agent outputs together\n- Cross-reference information for conflicts or duplications\n- Use tables and structured formatting for clarity\n- Include specific details (account names, counts, times)\n- Provide actionable insights with business context\n- Keep technical jargon minimal\n- If any agent reports \"no items detected\", show \"None\" in relevant sections\n"
         }
       },
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 2.2,
       "position": [
-        1664,
-        448
+        -1360,
+        -784
       ],
-      "id": "745e0183-4b54-41cc-8686-5b03d2607c0e",
+      "id": "62269b5a-66db-402f-bfc8-09a2fd886305",
       "name": "Master Email Summary Consolidation AI Agent"
     },
     {
@@ -222,15 +223,15 @@
       "type": "n8n-nodes-base.microsoftOutlook",
       "typeVersion": 2,
       "position": [
-        -1184,
-        736
+        -4208,
+        -496
       ],
-      "id": "93b30555-403c-46bf-8d7b-01b34f1fec30",
+      "id": "6faac08b-525b-48af-9900-0a13c3b8b6a2",
       "name": "Get many events",
       "webhookId": "8f0ff434-2bee-4e15-9e0d-824978e21cdc",
       "credentials": {
         "microsoftOutlookOAuth2Api": {
-          "id": "qXOZzCufhjfQAht6",
+          "id": "LzVANcF3q6H97rYT",
           "name": "Microsoft Outlook account"
         }
       }
@@ -240,16 +241,16 @@
         "promptType": "define",
         "text": "={{ JSON.stringify($json.content) }}\n\n",
         "options": {
-          "systemMessage": "=Analyze raw JSON data and generate a clear, organized, and actionable summary of the user's schedule for a specified period.\n\nTask\nSummarize all scheduled events for a given timeframe (e.g., today, this week). Extract key details, identify scheduling conflicts, and present the information in a scannable, agenda-style format.\n\nEvent Types to Differentiate\nMeeting: An event with multiple attendees requiring collaboration.\n\nAppointment: A scheduled commitment, typically with one or two people (e.g., doctor's visit, 1-on-1).\n\nTask/Reminder: A block of time for personal work or a reminder (e.g., \"Finish report,\" \"Call bank\").\n\nAll-Day Event: An event spanning the entire day, often informational (e.g., Holiday, Birthday, Out of Office).\n\nTime-Based Grouping\nRecently Passed: Events that just concluded today.\n\nToday: All remaining events for the current day.\n\nTomorrow: All events for the following day.\n\nThis Week: Events scheduled for the rest of the current week (excluding today and tomorrow).\n\nLater: Significant events beyond this week.\n\nOutput Format\n## Calendar Summary for: [Date Range]\n\n**Today's Highlights**: [Total Events] events, [X] meetings, [Y] hours of free time.\n\n### Conflicts & Overlaps ([count])\n- **[Time]**: [Event 1 Title] overlaps with [Event 2 Title]\n\n### Today,{{ $now }} ([count])\n- **[Start Time] - [End Time]** - [Event Title] | **Type**: [Meeting/Appointment] | **Location/Link**: [Teams Link/Conference Room] | **Attendees**: [Count]\n\n### Tomorrow, August 14, 2025 ([count])\n- **[Start Time] - [End Time]** - [Event Title] | **Type**: [Appointment] | **Location/Link**: [Address] | **Organizer**: [Name]\n- **All Day** - [Event Title] | **Type**: [All-Day Event]\n\n### This Week ([count])\n- **[Day, Date]**: [Start Time] - [Event Title] | **Location**: [Details]\n\n### Later ([count])\n- **[Day, Date]**: [Event Title]\n\n### Recently Passed Today ([count])\n- **[Start Time] - [End Time]** - [Event Title] | **Type**: [Meeting]\nInstructions\nTime Accuracy: Parse start and end times precisely. All times must be converted and displayed in the user's local timezone (India Standard Time).\n\nCurrent Context: Use the current time ({{ $now }}) to determine which events are \"Recently Passed,\" \"Today,\" \"Tomorrow,\" etc.\n\nDuration: Calculate and display the duration for each event within the time slot (e.g., 02:00 PM - 02:30 PM).\n\nDetails: Extract the primary location or the online meeting URL. Do not include the entire body unless it's a short note.\n\nParticipants: Note the number of attendees or the name of the organizer if relevant.\n\nConflict Detection: Explicitly check for and highlight any events whose time ranges overlap. This is the highest priority after the summary.\n\nClarity over Detail: The goal is a scannable summary. Avoid overly verbose descriptions.\n\nEmpty State: If no events are found for the requested period, respond with: \"Your calendar for this period is clear.\""
+          "systemMessage": "=Analyze raw calendar data (e.g., from an API, iCal feed, or JSON object) and generate a clear, organized, and actionable summary of the user's schedule for a specified period.\n\nTask\nSummarize all scheduled events for a given timeframe (e.g., today, this week). Extract key details, identify scheduling conflicts, and present the information in a scannable, agenda-style format.\n\nEvent Types to Differentiate\nMeeting: An event with multiple attendees requiring collaboration.\n\nAppointment: A scheduled commitment, typically with one or two people (e.g., doctor's visit, 1-on-1).\n\nTask/Reminder: A block of time for personal work or a reminder (e.g., \"Finish report,\" \"Call bank\").\n\nAll-Day Event: An event spanning the entire day, often informational (e.g., Holiday, Birthday, Out of Office).\n\nTime-Based Grouping\nRecently Passed: Events that just concluded today.\n\nToday: All remaining events for the current day.\n\nTomorrow: All events for the following day.\n\nThis Week: Events scheduled for the rest of the current week (excluding today and tomorrow).\n\nLater: Significant events beyond this week.\n\nOutput Format\n## Calendar Summary for: [Date Range]\n\n**Today's Highlights**: [Total Events] events, [X] meetings, [Y] hours of free time.\n\n### Conflicts & Overlaps ([count])\n- **[Time]**: [Event 1 Title] overlaps with [Event 2 Title]\n\n### Today,{{ $now }} ([count])\n- **[Start Time] - [End Time]** - [Event Title] | **Type**: [Meeting/Appointment] | **Location/Link**: [Teams Link/Conference Room] | **Attendees**: [Count]\n\n### Tomorrow, August 14, 2025 ([count])\n- **[Start Time] - [End Time]** - [Event Title] | **Type**: [Appointment] | **Location/Link**: [Address] | **Organizer**: [Name]\n- **All Day** - [Event Title] | **Type**: [All-Day Event]\n\n### This Week ([count])\n- **[Day, Date]**: [Start Time] - [Event Title] | **Location**: [Details]\n\n### Later ([count])\n- **[Day, Date]**: [Event Title]\n\n### Recently Passed Today ([count])\n- **[Start Time] - [End Time]** - [Event Title] | **Type**: [Meeting]\nInstructions\nTime Accuracy: Parse start and end times precisely. All times must be converted and displayed in the user's local timezone (India Standard Time).\n\nCurrent Context: Use the current time ({{ $now }}) to determine which events are \"Recently Passed,\" \"Today,\" \"Tomorrow,\" etc.\n\nDuration: Calculate and display the duration for each event within the time slot (e.g., 02:00 PM - 02:30 PM).\n\nDetails: Extract the primary location or the online meeting URL. Do not include the entire body unless it's a short note.\n\nParticipants: Note the number of attendees or the name of the organizer if relevant.\n\nConflict Detection: Explicitly check for and highlight any events whose time ranges overlap. This is the highest priority after the summary.\n\nClarity over Detail: The goal is a scannable summary. Avoid overly verbose descriptions.\n\nEmpty State: If no events are found for the requested period, respond with: \"Your calendar for this period is clear.\""
         }
       },
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 2.2,
       "position": [
-        336,
-        1104
+        -2688,
+        -128
       ],
-      "id": "30472920-68da-4dcc-a870-7ec2b1b0fffe",
+      "id": "76ba5383-f5a7-4fb0-971d-4bbb8f43927d",
       "name": "Other / General AI Agent1"
     },
     {
@@ -377,10 +378,10 @@
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3.2,
       "position": [
-        -432,
-        400
+        -3472,
+        -832
       ],
-      "id": "52905d1c-6617-42c8-b98f-5eb0e8358816",
+      "id": "01182308-ad7f-4f09-885a-d06c863dcf97",
       "name": "Switch"
     },
     {
@@ -390,10 +391,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -640,
-        448
+        -3664,
+        -784
       ],
-      "id": "db492c1e-da17-4de3-8d0d-be5cc5bc94d6",
+      "id": "2078f30c-e31b-4683-82a6-c85716618543",
       "name": "Email Classifier"
     },
     {
@@ -403,10 +404,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -1008,
-        736
+        -4032,
+        -496
       ],
-      "id": "c5983194-720c-424d-b072-7d29a2dbad5a",
+      "id": "5ac1717b-38ff-45ea-960b-280ce9915e94",
       "name": "calendar clean"
     },
     {
@@ -417,15 +418,27 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -1008,
-        448
+        -4032,
+        -784
       ],
-      "id": "ddbcce26-0bf8-4285-ac52-da1b3b84a3f9",
+      "id": "43ff9f83-38b4-40a5-99eb-9847f5c2f2e1",
       "name": "Email plain text"
     },
     {
       "parameters": {
-        "toRecipients": "an.ansible786@gmail.com",
+        "jsonSchemaExample": "{\n  \"output\": {\n    \"subject\": \"<short, clear subject line for the email>\",\n    \"html\": \"<full HTML summary>\",\n    \"text\": \"<full plain text summary>\"\n  }\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        -1216,
+        -576
+      ],
+      "id": "2fec01dc-3182-4a7a-9f53-ccea7715a962",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
         "subject": "={{ $json.output.subject }}",
         "bodyContent": "={{ $json.output.html }}",
         "additionalFields": {
@@ -435,58 +448,44 @@
       "type": "n8n-nodes-base.microsoftOutlook",
       "typeVersion": 2,
       "position": [
-        2320,
-        448
+        -1008,
+        -784
       ],
-      "id": "09e89a2c-1ae2-40e1-9781-51d5f6b22b59",
+      "id": "61999607-be3c-4bd6-8656-b0df5c85291a",
       "name": "Send a message1",
       "webhookId": "cf25b4e3-2eb7-438b-93ca-f54c090cf07c",
       "credentials": {
         "microsoftOutlookOAuth2Api": {
-          "id": "qXOZzCufhjfQAht6",
+          "id": "LzVANcF3q6H97rYT",
           "name": "Microsoft Outlook account"
         }
       }
     },
     {
       "parameters": {
-        "model": "anthropic.claude-v2:1",
         "options": {}
       },
       "type": "@n8n/n8n-nodes-langchain.lmChatAwsBedrock",
       "typeVersion": 1.1,
       "position": [
-        336,
-        1424
+        -2688,
+        192
       ],
-      "id": "3601283a-1080-443e-b9e8-4dc9d9b5a348",
-      "name": "AWS Bedrock Chat Model",
-      "credentials": {
-        "aws": {
-          "id": "HitTx1kQibiMbS2l",
-          "name": "AWS account 2"
-        }
-      }
+      "id": "6cb214cf-b4c7-4054-97b5-50bb91b49a39",
+      "name": "AWS Bedrock Chat Model"
     },
     {
       "parameters": {
-        "model": "anthropic.claude-v2:1",
         "options": {}
       },
       "type": "@n8n/n8n-nodes-langchain.lmChatAwsBedrock",
       "typeVersion": 1.1,
       "position": [
-        1664,
-        656
+        -1360,
+        -576
       ],
-      "id": "39abebba-4f0d-4cdd-85d7-bd19a5f10595",
-      "name": "AWS Bedrock Chat Model1",
-      "credentials": {
-        "aws": {
-          "id": "HitTx1kQibiMbS2l",
-          "name": "AWS account 2"
-        }
-      }
+      "id": "fc5e09b5-2e59-43a5-917a-a35ee189bd5c",
+      "name": "AWS Bedrock Chat Model1"
     },
     {
       "parameters": {
@@ -498,15 +497,15 @@
       "type": "n8n-nodes-base.microsoftOutlook",
       "typeVersion": 2,
       "position": [
-        -1184,
-        448
+        -4208,
+        -784
       ],
-      "id": "0c1c2822-e082-400a-b0c2-5d75fd9bfcf9",
+      "id": "3cf6bd3c-97a4-4b76-b9ec-b2d6c8e3b070",
       "name": "Get many messages1",
       "webhookId": "883ab1d4-8c2f-4cd2-a30e-3de94a85c119",
       "credentials": {
         "microsoftOutlookOAuth2Api": {
-          "id": "qXOZzCufhjfQAht6",
+          "id": "LzVANcF3q6H97rYT",
           "name": "Microsoft Outlook account"
         }
       }
@@ -518,23 +517,23 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -832,
-        448
+        -3856,
+        -784
       ],
-      "id": "41e37e8d-d477-4236-9f95-f4c958d5316b",
+      "id": "f61e27be-277f-4d71-9e20-cae1b8f1dc10",
       "name": "Date filter"
     },
     {
       "parameters": {
-        "jsCode": "// This node filters calendar events for the NEXT 7 DAYS starting from today\n// Works with already cleaned calendar data format\n// Gets events from today + next 6 days\n// Get all incoming items\nconst items = $input.all();\n// Extract the content array from the first item\nconst allEvents = items[0]?.json?.content || [];\nconst weekEvents = [];\n\n// Get next 7 days starting from today\nconst now = new Date();\n// Create array of next 7 dates starting from today\nconst next7Days = [];\nfor (let i = 0; i < 7; i++) {\n  const date = new Date(now);\n  date.setDate(now.getDate() + i);\n  const dateString = date.toLocaleDateString('en-GB', {\n    day: 'numeric',\n    month: 'long',\n    year: 'numeric',\n    timeZone: 'Asia/Kolkata'\n  });\n  next7Days.push(dateString);\n}\n\nconsole.log(`Looking for events for next 7 days: ${next7Days[0]} to ${next7Days[6]}`);\n\n// Helper function to parse date from the formatted string\nfunction parseDateFromString(dateString) {\n  if (!dateString) return null;\n  \n  // Handle all-day events (format: \"12 August 2025\")\n  if (!dateString.includes(' at ')) {\n    try {\n      return new Date(dateString + ' 00:00:00');\n    } catch (e) {\n      return null;\n    }\n  }\n  \n  // Handle timed events (format: \"12 August 2025 at 11:00 am\")\n  try {\n    const [datePart, timePart] = dateString.split(' at ');\n    const fullDateString = `${datePart} ${timePart}`;\n    return new Date(fullDateString);\n  } catch (e) {\n    return null;\n  }\n}\n\n// Helper function to check if event is in next 7 days\nfunction isInNext7Days(eventStartString) {\n  const eventDate = parseDateFromString(eventStartString);\n  if (!eventDate || isNaN(eventDate.getTime())) {\n    return false;\n  }\n  \n  // Compare just the date part (ignore time)\n  const eventDateString = eventDate.toLocaleDateString('en-GB', {\n    day: 'numeric',\n    month: 'long',\n    year: 'numeric',\n    timeZone: 'Asia/Kolkata'\n  });\n  \n  return next7Days.includes(eventDateString);\n}\n\n// Filter events for next 7 days\nfor (const event of allEvents) {\n  if (isInNext7Days(event.start)) {\n    weekEvents.push(event);\n    console.log(`Found upcoming event: ${event.title} - ${event.start}`);\n  }\n}\n\nconsole.log(`Found ${weekEvents.length} events for next 7 days`);\n\n// Return filtered events with message inside content if no events found\nif (weekEvents.length === 0) {\n  return [{\n    json: {\n      content: [{\n        title: \"No Events Available\",\n        isAllDay: true,\n        start: next7Days[0],\n        end: next7Days[6],\n        duration: \"7 Days\",\n        meetingType: \"Information\",\n        details: `No events found for the period ${next7Days[0]} to ${next7Days[6]}. Total events checked: ${allEvents.length}`,\n        organizer: \"System\",\n        attendees: []\n      }]\n    }\n  }];\n} else {\n  return [{\n    json: {\n      content: weekEvents\n    }\n  }];\n}"
+        "jsCode": "// This node filters calendar events for the NEXT 7 DAYS starting from today\n// Works with already cleaned calendar data format\n// Gets events from today + next 6 days\n\n// Get all incoming items\nconst items = $input.all();\n\n// Extract the content array from the first item\nconst allEvents = items[0]?.json?.content || [];\n\nconst weekEvents = [];\n\n// Get next 7 days starting from today\nconst now = new Date();\n\n// Create array of next 7 dates starting from today\nconst next7Days = [];\nfor (let i = 0; i < 7; i++) {\n  const date = new Date(now);\n  date.setDate(now.getDate() + i);\n  const dateString = date.toLocaleDateString('en-GB', {\n    day: 'numeric',\n    month: 'long',\n    year: 'numeric',\n    timeZone: 'Asia/Kolkata'\n  });\n  next7Days.push(dateString);\n}\n\nconsole.log(`Looking for events for next 7 days: ${next7Days[0]} to ${next7Days[6]}`);\n\n// Helper function to parse date from the formatted string\nfunction parseDateFromString(dateString) {\n  if (!dateString) return null;\n  \n  // Handle all-day events (format: \"12 August 2025\")\n  if (!dateString.includes(' at ')) {\n    try {\n      return new Date(dateString + ' 00:00:00');\n    } catch (e) {\n      return null;\n    }\n  }\n  \n  // Handle timed events (format: \"12 August 2025 at 11:00 am\")\n  try {\n    const [datePart, timePart] = dateString.split(' at ');\n    const fullDateString = `${datePart} ${timePart}`;\n    return new Date(fullDateString);\n  } catch (e) {\n    return null;\n  }\n}\n\n// Helper function to check if event is in next 7 days\nfunction isInNext7Days(eventStartString) {\n  const eventDate = parseDateFromString(eventStartString);\n  if (!eventDate || isNaN(eventDate.getTime())) {\n    return false;\n  }\n  \n  // Compare just the date part (ignore time)\n  const eventDateString = eventDate.toLocaleDateString('en-GB', {\n    day: 'numeric',\n    month: 'long',\n    year: 'numeric',\n    timeZone: 'Asia/Kolkata'\n  });\n  \n  return next7Days.includes(eventDateString);\n}\n\n// Filter events for next 7 days\nfor (const event of allEvents) {\n  if (isInNext7Days(event.start)) {\n    weekEvents.push(event);\n    console.log(`Found upcoming event: ${event.title} - ${event.start}`);\n  }\n}\n\nconsole.log(`Found ${weekEvents.length} events for next 7 days`);\n\n// Return filtered events - events for next 7 days starting today\nreturn [{\n  json: {\n    content: weekEvents\n  }\n}];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -832,
-        736
+        -3856,
+        -496
       ],
-      "id": "76e83486-810e-4872-b89c-8c89ba551a02",
+      "id": "c785ee7a-2cca-407a-9cfe-d959c8cfca71",
       "name": "Date filter1"
     },
     {
@@ -551,10 +550,10 @@
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
       "position": [
-        -1520,
-        1264
+        -4544,
+        32
       ],
-      "id": "b0f3cb1b-ad9f-44c7-8507-4ad8547e733f",
+      "id": "ef6605ac-a8dd-49c4-9177-85ac07a4a8e7",
       "name": "Schedule Trigger",
       "disabled": true
     },
@@ -563,24 +562,11 @@
       "type": "n8n-nodes-base.manualTrigger",
       "typeVersion": 1,
       "position": [
-        -1520,
-        576
+        -4544,
+        -656
       ],
-      "id": "980bf321-1e23-4aba-a7db-a24aa9bddbec",
+      "id": "c705972e-35cd-4e9a-87e3-df5bd1721299",
       "name": "When clicking ‘Execute workflow’"
-    },
-    {
-      "parameters": {
-        "jsCode": "// Input from previous node\nconst input = items[0].json.output;\n\n// Extract the JSON block between ```json ... ```\nconst match = input.match(/```json([\\s\\S]*?)```/);\n\nif (!match) {\n  return [{ json: { error: \"No JSON block found in input\" } }];\n}\n\nlet raw = match[1].trim();\n\n// Fix common issues: remove bad control characters\nraw = raw.replace(/[\\u0000-\\u001F]+/g, \"\");\n\n// Try parsing\nlet parsed;\ntry {\n  parsed = JSON.parse(raw);\n} catch (e) {\n  // If still fails, just return raw string\n  return [{ json: { error: \"Still invalid JSON\", details: e.message, raw } }];\n}\n\nreturn [{ json: parsed }];\n"
-      },
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        2016,
-        448
-      ],
-      "id": "d6106844-8012-4819-99f2-e874777a9e30",
-      "name": "Extract Clean JSON Summary"
     }
   ],
   "pinData": {},
@@ -721,7 +707,7 @@
       "main": [
         [
           {
-            "node": "Extract Clean JSON Summary",
+            "node": "Send a message1",
             "type": "main",
             "index": 0
           }
@@ -822,6 +808,17 @@
         ]
       ]
     },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Master Email Summary Consolidation AI Agent",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
     "Get many messages1": {
       "main": [
         [
@@ -853,6 +850,11 @@
             "index": 0
           }
         ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        []
       ]
     },
     "AWS Bedrock Chat Model": {
@@ -917,35 +919,24 @@
           }
         ]
       ]
-    },
-    "Extract Clean JSON Summary": {
-      "main": [
-        [
-          {
-            "node": "Send a message1",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
     }
   },
   "active": false,
   "settings": {
     "executionOrder": "v1"
   },
-  "versionId": "79209080-6e25-4f49-9549-bb21413a28ab",
+  "versionId": "d7425fdf-6679-4155-a611-2d6cc3b6dbd1",
   "meta": {
     "templateCredsSetupCompleted": true,
-    "instanceId": "7b3a0549d7495efadc035b471a20b518d8a129b8441fd7d6c92c30a9122ede89"
+    "instanceId": "09a62427b893cbce6a70c07c8d422be777ecbe8f3170f355def7cd13e185cf96"
   },
-  "id": "2A8giMrjfdtfBHSC",
+  "id": "0JwcWpODvkhQZpnk",
   "tags": [
     {
-      "createdAt": "2025-09-01T11:23:37.792Z",
-      "updatedAt": "2025-09-01T11:23:37.792Z",
-      "id": "RxUg2kifiSIo6z5h",
-      "name": "v4"
+      "name": "v4",
+      "id": "EZFS6vlVEzx0jJcp",
+      "createdAt": "2025-09-01T06:15:57.082Z",
+      "updatedAt": "2025-09-01T06:15:57.082Z"
     }
   ]
 }
